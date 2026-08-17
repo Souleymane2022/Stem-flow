@@ -61,7 +61,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function CompetitionsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Competition[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -114,7 +114,10 @@ function CompetitionsPage() {
   }, [load]);
 
   const createCompetition = async () => {
-    if (!user || !profile) {
+    // Le message ne portait que sur la connexion, mais la garde testait aussi
+    // `profile`. Un utilisateur connecté dont la fiche n'était pas encore
+    // chargée se voyait donc demander de se connecter alors qu'il l'était.
+    if (!user) {
       toast.error("Connecte-toi pour lancer un défi");
       return;
     }
@@ -124,11 +127,22 @@ function CompetitionsPage() {
       return;
     }
     setCreating(true);
+
+    // `competitions.host_id` référence `profiles(id)` : la fiche doit exister en
+    // base, même si elle n'est pas encore dans l'état React. refreshProfile la
+    // recharge et la recrée au besoin.
+    const me = profile ?? (await refreshProfile());
+    if (!me) {
+      setCreating(false);
+      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
+      return;
+    }
+
     const { data, error } = await supabase
       .from("competitions")
       .insert({
         host_id: user.id,
-        host_name: profile.username,
+        host_name: me.username,
         topic: clean,
         category,
         difficulty,
@@ -139,15 +153,17 @@ function CompetitionsPage() {
       .single();
     if (error || !data) {
       setCreating(false);
-      toast.error("Impossible de créer le défi");
+      console.error("[competitions] création impossible", error);
+      toast.error(`Impossible de créer le défi : ${error?.message ?? "réponse vide"}`);
       return;
     }
-    await supabase.from("competition_participants").insert({
+    const { error: joinError } = await supabase.from("competition_participants").insert({
       competition_id: data.id,
       user_id: user.id,
-      username: profile.username,
-      avatar_url: profile.profile_image_url,
+      username: me.username,
+      avatar_url: me.profile_image_url,
     });
+    if (joinError) console.error("[competitions] inscription de l'hôte impossible", joinError);
     setCreating(false);
     setTopic("");
     void navigate({ to: "/competitions/$id", params: { id: data.id } });
@@ -226,12 +242,12 @@ function CompetitionsPage() {
           <button
             type="button"
             onClick={() => void createCompetition()}
-            disabled={creating}
+            disabled={creating || authLoading}
             className="mt-3 w-full rounded-xl bg-gradient-brand py-2.5 text-sm font-bold text-background disabled:opacity-60"
           >
             {creating ? "Création…" : "Créer le défi"}
           </button>
-          {!user && (
+          {!authLoading && !user && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
               <Link to="/auth" className="text-primary">
                 Connecte-toi

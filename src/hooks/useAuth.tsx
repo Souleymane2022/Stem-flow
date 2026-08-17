@@ -34,7 +34,8 @@ type AuthContextValue = {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  refreshProfile: () => Promise<void>;
+  /** Renvoie la fiche rechargée (et la recrée si elle manque), ou null en cas d'échec. */
+  refreshProfile: () => Promise<Profile | null>;
   awardXp: (amount: number) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -203,13 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile, repairProfile, runDailyRoutine]);
 
   const refreshProfile = useCallback(async () => {
-    if (!session) return;
+    if (!session) return null;
     const p = await loadProfile(session.user.id);
-    if (p) return;
+    if (p) return p;
     // Le bouton « Réessayer » du profil doit pouvoir relancer la réparation.
     repaired.current = null;
     const created = await repairProfile(session.user);
     if (created) setProfile(created);
+    return created;
   }, [session, loadProfile, repairProfile]);
 
   const awardXp = useCallback(

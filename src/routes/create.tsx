@@ -27,7 +27,7 @@ export const Route = createFileRoute("/create")({
 
 function CreatePage() {
   const navigate = useNavigate();
-  const { session, profile, awardXp } = useAuth();
+  const { session, profile, refreshProfile, awardXp } = useAuth();
   const pushXp = useXpPopup();
 
   const [type, setType] = useState<"video" | "text">("video");
@@ -41,7 +41,7 @@ function CreatePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session || !profile) {
+    if (!session) {
       toast.error("Connecte-toi pour publier.");
       return;
     }
@@ -52,6 +52,14 @@ function CreatePage() {
     }
 
     setBusy(true);
+    // author_id référence profiles(id) : la fiche doit exister en base, même si
+    // elle n'est pas encore dans l'état React.
+    const me = profile ?? (await refreshProfile());
+    if (!me) {
+      setBusy(false);
+      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
+      return;
+    }
     const { error } = await supabase.from("contents").insert({
       content_type: type,
       title,
@@ -63,13 +71,14 @@ function CreatePage() {
       difficulty,
       xp_reward: 10,
       author_id: session.user.id,
-      author_name: profile.username,
-      author_avatar: profile.profile_image_url,
+      author_name: me.username,
+      author_avatar: me.profile_image_url,
     });
     setBusy(false);
 
     if (error) {
-      toast.error("Publication impossible.");
+      console.error("[create] publication impossible", error);
+      toast.error(`Publication impossible : ${error.message}`);
       return;
     }
     await awardXp(XP_REWARDS.publish);

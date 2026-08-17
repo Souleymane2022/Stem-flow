@@ -63,7 +63,7 @@ type Participant = {
 
 function CompetitionRoom() {
   const { id } = Route.useParams();
-  const { user, profile, awardXp } = useAuth();
+  const { user, profile, refreshProfile, awardXp } = useAuth();
   const navigate = useNavigate();
   const generate = useServerFn(generateCompetitionQuestions);
 
@@ -141,18 +141,28 @@ function CompetitionRoom() {
   }, [comp?.status, loadQuestions]);
 
   const join = async () => {
-    if (!user || !profile) {
+    // Même écueil que sur la liste : le message ne parlait que de connexion
+    // alors que la garde exigeait aussi la fiche de profil.
+    if (!user) {
       toast.error("Connecte-toi pour rejoindre le défi");
+      return;
+    }
+    // user_id référence profiles(id) : la fiche doit exister en base.
+    const me = profile ?? (await refreshProfile());
+    if (!me) {
+      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
       return;
     }
     const { error } = await supabase.from("competition_participants").insert({
       competition_id: id,
       user_id: user.id,
-      username: profile.username,
-      avatar_url: profile.profile_image_url,
+      username: me.username,
+      avatar_url: me.profile_image_url,
     });
-    if (error) toast.error("Impossible de rejoindre");
-    else void loadAll();
+    if (error) {
+      console.error("[competition] inscription impossible", error);
+      toast.error(`Impossible de rejoindre : ${error.message}`);
+    } else void loadAll();
   };
 
   const startCompetition = async () => {
