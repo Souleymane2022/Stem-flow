@@ -1,6 +1,6 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Home, Search, PlusCircle, Trophy, Users, User, Bell, Swords } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { Home, Search, PlusCircle, Trophy, Users, User, Bell, Swords, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { InfinityGlyph, InfinityMark } from "@/components/brand/InfinityMark";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,7 +63,10 @@ function XpBar() {
         <span className="truncate">{profile.username}</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background">
-        <div className="h-full bg-gradient-brand transition-all duration-700" style={{ width: `${percent}%` }} />
+        <div
+          className="h-full bg-gradient-brand transition-all duration-700"
+          style={{ width: `${percent}%` }}
+        />
       </div>
       <p className="mt-1.5 flex justify-between text-[11px] text-muted-foreground tabular">
         <span>{profile.xp} XP</span>
@@ -76,8 +79,16 @@ function XpBar() {
 export function AppShell({ children }: { children: ReactNode }) {
   const unread = useUnreadCount();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { profile } = useAuth();
+  const { profile, session, signOut } = useAuth();
+  const navigate = useNavigate();
   const level = getLevel(profile?.xp ?? 0);
+
+  // Toutes les pages n'ont pas de garde de session : on renvoie explicitement
+  // vers la connexion après déconnexion.
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    await navigate({ to: "/auth" });
+  }, [signOut, navigate]);
 
   const isActive = (to: string) => path === to || path.startsWith(`${to}/`);
 
@@ -130,10 +141,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="space-y-3">
           <XpBar />
+          {/* Toujours disponible : la déconnexion ne doit pas dépendre du
+              chargement du profil, sinon un profil illisible piège l'utilisateur. */}
+          {session && (
+            <button
+              onClick={() => void handleSignOut()}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+            >
+              <LogOut className="h-5 w-5" />
+              Se déconnecter
+            </button>
+          )}
           <p className="text-[11px] text-muted-foreground">
-            <Link to="/privacy" className="hover:text-foreground">Confidentialité</Link>
+            <Link to="/privacy" className="hover:text-foreground">
+              Confidentialité
+            </Link>
             {" · "}
-            <Link to="/terms" className="hover:text-foreground">CGU</Link>
+            <Link to="/terms" className="hover:text-foreground">
+              CGU
+            </Link>
           </p>
         </div>
       </aside>
@@ -148,7 +174,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-bold">
             <InfinityGlyph /> <span className="tabular">{profile?.xp ?? 0}</span>
           </span>
-          <span className="text-lg" title={level.label}>{level.icon}</span>
+          <span className="text-lg" title={level.label}>
+            {level.icon}
+          </span>
+          {session && (
+            <button
+              onClick={() => void handleSignOut()}
+              aria-label="Se déconnecter"
+              className="rounded-full border border-border bg-surface-2 p-1.5 text-muted-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -166,7 +203,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Icon
                 className={`h-5 w-5 ${isCreate ? "text-primary" : active ? "text-primary" : "text-muted-foreground"}`}
               />
-              <span className={`text-[10px] font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}>
+              <span
+                className={`text-[10px] font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}
+              >
                 {short}
               </span>
             </Link>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Flame, LogOut, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,8 @@ export const Route = createFileRoute("/profile/")({
       { title: "Mon profil — STEMFLOW" },
       {
         name: "description",
-        content: "Suis ta progression : XP, niveau, série de connexions, badges et missions quotidiennes.",
+        content:
+          "Suis ta progression : XP, niveau, série de connexions, badges et missions quotidiennes.",
       },
       { property: "og:title", content: "Mon profil — STEMFLOW" },
       { property: "og:description", content: "Ton tableau de bord d'apprentissage STEM." },
@@ -35,7 +36,8 @@ type Mission = {
 type Badge = { id: string; name: string; icon: string; description: string | null };
 
 function ProfilePage() {
-  const { profile, signOut } = useAuth();
+  const { profile, session, loading, refreshProfile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [earned, setEarned] = useState<Set<string>>(new Set());
@@ -65,7 +67,11 @@ function ProfilePage() {
       setBadges((b as Badge[]) ?? []);
       setEarned(new Set((ub ?? []).map((r) => r.badge_id)));
       setSaved(
-        ((sv ?? []) as unknown as { contents: { id: string; title: string; category: string } | null }[])
+        (
+          (sv ?? []) as unknown as {
+            contents: { id: string; title: string; category: string } | null;
+          }[]
+        )
           .map((r) => r.contents)
           .filter((c): c is { id: string; title: string; category: string } => !!c),
       );
@@ -75,10 +81,50 @@ function ProfilePage() {
     };
   }, [profile]);
 
+  // Sans session, on repart vers la page de connexion plutôt que de rester
+  // indéfiniment sur un écran de chargement.
+  useEffect(() => {
+    if (!loading && !session) navigate({ to: "/auth" });
+  }, [loading, session, navigate]);
+
+  if (loading || (!profile && !session)) {
+    return (
+      <AppShell>
+        <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">
+          Chargement…
+        </div>
+      </AppShell>
+    );
+  }
+
+  // Session valide mais aucune ligne `profiles` correspondante : l'écran de
+  // chargement seul enfermait l'utilisateur, le bouton de déconnexion étant
+  // rendu plus bas. On propose ici les deux issues.
   if (!profile) {
     return (
       <AppShell>
-        <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">Chargement…</div>
+        <div className="mx-auto flex h-[60vh] max-w-sm flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="text-4xl">🛰️</p>
+          <h1 className="text-lg font-bold">Profil introuvable</h1>
+          <p className="text-sm text-muted-foreground">
+            Ton compte existe, mais sa fiche de profil n'a pas pu être chargée.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => void refreshProfile()}
+              className="rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-black text-primary-foreground"
+            >
+              Réessayer
+            </button>
+            <button
+              onClick={() => void signOut()}
+              className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-5 py-2.5 text-sm font-semibold"
+            >
+              <LogOut className="h-4 w-4" />
+              Se déconnecter
+            </button>
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -95,7 +141,9 @@ function ProfilePage() {
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl">@{profile.username}</h1>
-            <span className={`mt-1.5 inline-block rounded-full border px-2.5 py-1 text-[11px] font-bold ${levelBgClass[level.token]}`}>
+            <span
+              className={`mt-1.5 inline-block rounded-full border px-2.5 py-1 text-[11px] font-bold ${levelBgClass[level.token]}`}
+            >
               {level.icon} {level.label}
             </span>
             <div className="mt-3 flex gap-4 text-xs">
@@ -117,15 +165,22 @@ function ProfilePage() {
         <section className="mt-6 rounded-2xl border border-border bg-surface-2 p-5">
           <div className="flex items-center justify-between text-xs font-bold">
             <span>{level.label}</span>
-            <span className="text-muted-foreground">{next ? `${remaining} XP → ${next.label}` : "Niveau max"}</span>
+            <span className="text-muted-foreground">
+              {next ? `${remaining} XP → ${next.label}` : "Niveau max"}
+            </span>
           </div>
           <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-background">
-            <div className="h-full bg-gradient-brand transition-all duration-700" style={{ width: `${percent}%` }} />
+            <div
+              className="h-full bg-gradient-brand transition-all duration-700"
+              style={{ width: `${percent}%` }}
+            />
           </div>
         </section>
 
         <Section title="Missions du jour" icon={<Settings className="h-4 w-4" />}>
-          {missions.length === 0 && <p className="text-sm text-muted-foreground">Aucune mission aujourd'hui.</p>}
+          {missions.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucune mission aujourd'hui.</p>
+          )}
           <div className="space-y-2">
             {missions.map((m) => (
               <div key={m.id} className="rounded-2xl border border-border bg-surface-2 p-4">
@@ -137,7 +192,9 @@ function ProfilePage() {
                 <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-background">
                   <div
                     className="h-full bg-gradient-brand"
-                    style={{ width: `${Math.min(100, (m.current_progress / m.target_value) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, (m.current_progress / m.target_value) * 100)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -154,7 +211,9 @@ function ProfilePage() {
                   key={b.id}
                   title={b.description ?? b.name}
                   className={`flex flex-col items-center gap-1 rounded-2xl border p-3 text-center ${
-                    has ? "border-primary/50 bg-primary/10" : "border-border bg-surface-2 opacity-40"
+                    has
+                      ? "border-primary/50 bg-primary/10"
+                      : "border-border bg-surface-2 opacity-40"
                   }`}
                 >
                   <span className="text-2xl">{b.icon}</span>
@@ -166,7 +225,9 @@ function ProfilePage() {
         </Section>
 
         <Section title="Contenus enregistrés">
-          {saved.length === 0 && <p className="text-sm text-muted-foreground">Rien d'enregistré pour l'instant.</p>}
+          {saved.length === 0 && (
+            <p className="text-sm text-muted-foreground">Rien d'enregistré pour l'instant.</p>
+          )}
           <div className="space-y-2">
             {saved.map((c) => (
               <Link
@@ -185,7 +246,15 @@ function ProfilePage() {
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="mt-8">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wider text-muted-foreground">
