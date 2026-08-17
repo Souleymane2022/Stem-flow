@@ -219,9 +219,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className={`h-5 w-5 ${isCreate ? "text-primary" : active ? "text-primary" : "text-muted-foreground"}`}
               />
               <span
-                className={`text-[10px] font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}
+                className={`w-full truncate text-center text-[10px] font-semibold ${
+                  active ? "text-primary" : "text-muted-foreground"
+                }`}
               >
-                {short}
+                {t(short)}
               </span>
             </Link>
           );
