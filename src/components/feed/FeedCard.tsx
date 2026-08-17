@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, MessageCircle, Share2, Bookmark, Play, FileText, HelpCircle, Volume2, VolumeX } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  Bookmark,
+  Play,
+  FileText,
+  HelpCircle,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
 import { categoryMeta, difficultyLabel } from "@/lib/categories";
@@ -32,8 +42,14 @@ type Props = {
   saved: boolean;
   questionCount?: number;
   muted?: boolean;
+  /**
+   * Ne monte l'iframe YouTube que pour les slides proches de la position courante.
+   * Les autres n'affichent qu'une vignette : une iframe par contenu saturait le fil.
+   */
+  mountPlayer?: boolean;
   onToggleMute?: () => void;
   onPlayerReady?: (player: YouTubePlayerLike) => void;
+  onPlayerDestroy?: () => void;
   onToggleLike: () => void;
   onToggleSave: () => void;
   onComments: () => void;
@@ -51,8 +67,10 @@ export function FeedCard({
   saved,
   questionCount,
   muted = true,
+  mountPlayer = false,
   onToggleMute,
   onPlayerReady,
+  onPlayerDestroy,
   onToggleLike,
   onToggleSave,
   onComments,
@@ -88,10 +106,32 @@ export function FeedCard({
       {/* Media layer */}
       {content.content_type === "video" && content.video_id ? (
         <div className="absolute inset-0">
-          <VideoPlayer videoId={content.video_id} onPlayerReady={onPlayerReady} />
+          {mountPlayer ? (
+            <VideoPlayer
+              videoId={content.video_id}
+              onPlayerReady={onPlayerReady}
+              onPlayerDestroy={onPlayerDestroy}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-black">
+              <img
+                src={youtubeThumbnail(content.video_id)}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover opacity-70"
+              />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-background/70 backdrop-blur">
+                <Play className="h-7 w-7 fill-current text-primary" />
+              </span>
+            </div>
+          )}
         </div>
       ) : content.content_type === "quiz" ? (
-        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br ${meta.gradient}`}>
+        <div
+          className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br ${meta.gradient}`}
+        >
           <HelpCircle className={`h-14 w-14 ${meta.text}`} />
           <h2 className="mt-5 max-w-md px-8 text-center text-3xl">{content.title}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -108,7 +148,9 @@ export function FeedCard({
           </button>
         </div>
       ) : (
-        <div className={`absolute inset-0 flex flex-col justify-center bg-gradient-to-br ${meta.gradient} px-8`}>
+        <div
+          className={`absolute inset-0 flex flex-col justify-center bg-gradient-to-br ${meta.gradient} px-8`}
+        >
           {content.image_url && (
             <img
               src={content.image_url}
@@ -134,15 +176,6 @@ export function FeedCard({
             </button>
           </div>
         </div>
-      )}
-
-      {content.content_type === "video" && content.video_id && (
-        <img
-          src={youtubeThumbnail(content.video_id)}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-30 blur-2xl"
-        />
       )}
 
       {/* Heart bursts */}
@@ -190,7 +223,9 @@ export function FeedCard({
           <h3 className="mt-3 text-base font-bold leading-snug md:text-lg">{content.title}</h3>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}
+            >
               {meta.emoji} {content.category}
             </span>
             <span className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">

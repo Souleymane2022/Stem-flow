@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import { InfinityMark, Wordmark } from "@/components/brand/InfinityMark";
 
@@ -12,7 +11,8 @@ export const Route = createFileRoute("/auth")({
       { title: "Connexion — STEMFLOW" },
       {
         name: "description",
-        content: "Connecte-toi à STEMFLOW pour suivre ton fil STEM, gagner de l'XP et débloquer des badges.",
+        content:
+          "Connecte-toi à STEMFLOW pour suivre ton fil STEM, gagner de l'XP et débloquer des badges.",
       },
       { property: "og:title", content: "Connexion — STEMFLOW" },
       { property: "og:description", content: "Crée ton compte STEMFLOW et commence à apprendre." },
@@ -56,14 +56,26 @@ function AuthPage() {
     setBusy(false);
   };
 
+  // OAuth Google via Supabase. L'ancien flux passait par le broker Lovable
+  // (`/~oauth/initiate`), un chemin relatif qui n'est servi que par l'hébergement
+  // Lovable — il renvoyait donc le HTML de l'app sur tout autre domaine.
   const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth`,
+        queryParams: { prompt: "select_account" },
+      },
     });
-    if (result.error) {
-      toast.error("Connexion Google impossible pour le moment.");
-      return;
-    }
+    // Sans erreur, le navigateur part chez Google : rien d'autre à faire ici.
+    if (!error) return;
+    setBusy(false);
+    toast.error(
+      /not enabled|unsupported provider/i.test(error.message)
+        ? "Le fournisseur Google n'est pas activé dans Supabase."
+        : `Connexion Google impossible : ${error.message}`,
+    );
   };
 
   return (
@@ -94,9 +106,21 @@ function AuthPage() {
 
         <form onSubmit={submit} className="mt-6 space-y-3">
           {mode === "signup" && (
-            <Field label="Nom d'utilisateur" value={username} onChange={setUsername} placeholder="amina_stem" />
+            <Field
+              label="Nom d'utilisateur"
+              value={username}
+              onChange={setUsername}
+              placeholder="amina_stem"
+            />
           )}
-          <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="toi@exemple.com" required />
+          <Field
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="toi@exemple.com"
+            required
+          />
           <Field
             label="Mot de passe"
             type="password"
@@ -120,19 +144,33 @@ function AuthPage() {
 
         <button
           onClick={google}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 py-3.5 text-sm font-bold hover:border-primary/40"
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-2 py-3.5 text-sm font-bold hover:border-primary/40 disabled:opacity-50"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4">
-            <path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6Z" />
-            <path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24Z" />
-            <path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.7l3.8-3Z" />
-            <path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.2-3.2A12 12 0 0 0 1.8 7.1l3.8 3C6.5 7.4 9 4.8 12 4.8Z" />
+            <path
+              fill="#4285F4"
+              d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6Z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.7l3.8-3Z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.2-3.2A12 12 0 0 0 1.8 7.1l3.8 3C6.5 7.4 9 4.8 12 4.8Z"
+            />
           </svg>
           Continuer avec Google
         </button>
 
         <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-          En continuant, tu acceptes nos conditions d'utilisation et notre politique de confidentialité.
+          En continuant, tu acceptes nos conditions d'utilisation et notre politique de
+          confidentialité.
         </p>
       </div>
     </main>

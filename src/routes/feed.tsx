@@ -23,11 +23,21 @@ export const Route = createFileRoute("/feed")({
           "Scrolle un fil vertical de vidéos, d'articles et de quiz en sciences, technologie, ingénierie et maths.",
       },
       { property: "og:title", content: "Le fil STEM — STEMFLOW" },
-      { property: "og:description", content: "Vidéos, articles et quiz STEM en français, un scroll à la fois." },
+      {
+        property: "og:description",
+        content: "Vidéos, articles et quiz STEM en français, un scroll à la fois.",
+      },
     ],
   }),
   component: FeedPage,
 });
+
+/**
+ * Nombre de slides de part et d'autre de la position courante dont l'iframe
+ * YouTube reste montée. Le voisin est préchargé pour que le scroll suivant
+ * démarre sans latence ; au-delà, seule la vignette est rendue.
+ */
+const PLAYER_WINDOW = 1;
 
 function FeedPage() {
   const navigate = useNavigate();
@@ -197,7 +207,9 @@ function FeedPage() {
           .eq("content_id", content.id)
           .eq("user_id", session.user.id);
       } else {
-        await supabase.from("content_likes").insert({ content_id: content.id, user_id: session.user.id });
+        await supabase
+          .from("content_likes")
+          .insert({ content_id: content.id, user_id: session.user.id });
         await awardXp(XP_REWARDS.like);
         pushXp(XP_REWARDS.like);
       }
@@ -222,7 +234,9 @@ function FeedPage() {
           .eq("content_id", content.id)
           .eq("user_id", session.user.id);
       } else {
-        await supabase.from("content_saves").insert({ content_id: content.id, user_id: session.user.id });
+        await supabase
+          .from("content_saves")
+          .insert({ content_id: content.id, user_id: session.user.id });
         toast.success("Ajouté à tes favoris");
       }
     },
@@ -288,19 +302,30 @@ function FeedPage() {
             </div>
           )}
 
-          {items.map((content) => (
-            <section key={content.id} data-content-id={content.id} className="h-full w-full snap-start">
+          {items.map((content, index) => (
+            <section
+              key={content.id}
+              data-content-id={content.id}
+              className="h-full w-full snap-start"
+            >
               <FeedCard
                 content={content}
                 liked={likes.has(content.id)}
                 saved={saves.has(content.id)}
                 questionCount={questionCounts[content.id] ?? 0}
                 muted={muted}
+                mountPlayer={Math.abs(index - active) <= PLAYER_WINDOW}
                 onToggleMute={toggleMute}
                 onPlayerReady={(player) => {
                   players.current.set(content.id, player);
-                  if (!mutedRef.current && activeIdRef.current === content.id) player.unMute?.();
+                  // Le lecteur peut arriver après le passage de l'observer : si ce
+                  // contenu est déjà le contenu actif, on démarre la lecture ici.
+                  if (activeIdRef.current !== content.id) return;
+                  if (mutedRef.current) player.mute?.();
+                  else player.unMute?.();
+                  player.playVideo?.();
                 }}
+                onPlayerDestroy={() => players.current.delete(content.id)}
                 onToggleLike={() => void toggleLike(content)}
                 onToggleSave={() => void toggleSave(content)}
                 onComments={() => setCommentsFor(content.id)}
@@ -322,7 +347,9 @@ function FeedPage() {
         )}
       </div>
 
-      {commentsFor && <CommentsSheet contentId={commentsFor} onClose={() => setCommentsFor(null)} />}
+      {commentsFor && (
+        <CommentsSheet contentId={commentsFor} onClose={() => setCommentsFor(null)} />
+      )}
       {quizFor && <QuizModal contentId={quizFor} onClose={() => setQuizFor(null)} />}
       {articleFor && (
         <ArticleSheet

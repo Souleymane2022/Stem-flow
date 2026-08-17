@@ -89,10 +89,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "STEMFLOW — Apprends les sciences en scrollant" },
       { name: "twitter:title", content: "STEMFLOW — Apprends les sciences en scrollant" },
-      { property: "og:description", content: "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion." },
-      { name: "twitter:description", content: "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png" },
+      {
+        property: "og:description",
+        content:
+          "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -103,6 +119,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      // Le fil monte des lecteurs YouTube : ouvrir les connexions au plus tôt
+      // évite un aller-retour DNS/TLS au moment de la première lecture.
+      { rel: "preconnect", href: "https://www.youtube.com" },
+      { rel: "preconnect", href: "https://i.ytimg.com" },
+      { rel: "dns-prefetch", href: "https://googlevideo.com" },
     ],
   }),
   shellComponent: RootShell,

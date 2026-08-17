@@ -78,6 +78,30 @@ Après le premier déploiement, dans le tableau de bord Supabase
 
 Sans cela, la connexion et l'inscription échoueront en production.
 
+## 5. Connexion Google
+
+Le bouton « Continuer avec Google » utilise l'OAuth natif de Supabase
+(`supabase.auth.signInWithOAuth`). Il passait auparavant par le broker OAuth de
+Lovable, dont l'URL d'initiation (`/~oauth/initiate`) est un **chemin relatif** :
+elle n'est servie que par l'hébergement Lovable, et renvoyait donc le HTML de
+l'application sur tout autre domaine — d'où l'échec silencieux sur Vercel.
+
+Le code seul ne suffit pas ; il faut aussi configurer le fournisseur :
+
+1. **Google Cloud Console** → *APIs & Services* → *Credentials* → créez un
+   *OAuth client ID* de type **Web application**.
+2. Dans *Authorized redirect URIs*, mettez l'URL de callback **de Supabase**
+   (pas celle de Vercel) :
+   `https://<votre-ref>.supabase.co/auth/v1/callback`
+3. **Supabase** → *Authentication* → *Providers* → **Google** : activez-le et
+   collez le *Client ID* et le *Client Secret* obtenus à l'étape 1.
+4. Vérifiez que l'étape 4 ci-dessus (Redirect URLs) inclut bien votre domaine
+   Vercel — l'application renvoie l'utilisateur sur `/auth` après Google.
+
+Si le fournisseur n'est pas activé, l'application affiche désormais un message
+explicite (« Le fournisseur Google n'est pas activé dans Supabase. ») au lieu
+d'un échec silencieux.
+
 ## Note sur `bun.lock`
 
 Le fichier `bun.lock` hérité de Lovable référence un registre npm privé

@@ -1,8 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { youtubeThumbnail } from "@/utils/youtube";
 
 type Props = {
   videoId: string;
   onPlayerReady?: ((player: YouTubePlayerLike) => void) | undefined;
+  /** Appelé quand l'iframe est détruite, pour purger les références côté fil. */
+  onPlayerDestroy?: (() => void) | undefined;
 };
 
 export type YouTubePlayerLike = {
@@ -33,18 +37,24 @@ function loadApi(): Promise<void> {
   return apiPromise;
 }
 
-export function VideoPlayer({ videoId, onPlayerReady }: Props) {
+export function VideoPlayer({ videoId, onPlayerReady, onPlayerDestroy }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(onPlayerReady);
   readyRef.current = onPlayerReady;
+  const destroyRef = useRef(onPlayerDestroy);
+  destroyRef.current = onPlayerDestroy;
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let destroyed = false;
     let player: { destroy: () => void } | null = null;
+    setReady(false);
 
     void loadApi().then(() => {
       if (destroyed || !hostRef.current) return;
-      const YT = (window as unknown as { YT: { Player: new (el: Element, opts: unknown) => unknown } }).YT;
+      const YT = (
+        window as unknown as { YT: { Player: new (el: Element, opts: unknown) => unknown } }
+      ).YT;
       player = new YT.Player(hostRef.current, {
         videoId,
         width: "100%",
@@ -59,6 +69,7 @@ export function VideoPlayer({ videoId, onPlayerReady }: Props) {
         },
         events: {
           onReady: (event: { target: YouTubePlayerLike }) => {
+            setReady(true);
             readyRef.current?.(event.target);
           },
         },
@@ -72,12 +83,23 @@ export function VideoPlayer({ videoId, onPlayerReady }: Props) {
       } catch {
         /* noop */
       }
+      destroyRef.current?.();
     };
   }, [videoId]);
 
   return (
-    <div className="h-full w-full bg-black">
-      <div ref={hostRef} className="h-full w-full" />
+    <div className="relative h-full w-full bg-black">
+      {/* Vignette affichée le temps que l'iframe s'initialise, pour éviter un écran noir. */}
+      {!ready && (
+        <img
+          src={youtubeThumbnail(videoId)}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover opacity-70"
+        />
+      )}
+      <div ref={hostRef} className="relative h-full w-full" />
     </div>
   );
 }
