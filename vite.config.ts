@@ -11,6 +11,11 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 // Inside a Lovable sandbox build the preset is forced back to Cloudflare regardless.
 const preset = process.env["NITRO_PRESET"] ?? (process.env["VERCEL"] ? "vercel" : undefined);
 
+// Identifiant du commit déployé, figé à la compilation. Vercel expose
+// VERCEL_GIT_COMMIT_SHA pendant le build ; il est affiché dans l'application
+// pour pouvoir constater d'un coup d'œil quelle version est réellement en ligne.
+const buildId = (process.env["VERCEL_GIT_COMMIT_SHA"] ?? "dev").slice(0, 7);
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -18,4 +23,7 @@ export default defineConfig({
     server: { entry: "server" },
   },
   ...(preset ? { nitro: { preset } } : {}),
+  vite: {
+    define: { __BUILD_ID__: JSON.stringify(buildId) },
+  },
 });

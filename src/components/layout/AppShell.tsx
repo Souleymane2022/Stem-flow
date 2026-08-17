@@ -156,12 +156,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           <p className="text-[11px] text-muted-foreground">
             <Link to="/privacy" className="hover:text-foreground">
-              Confidentialité
+              {t("nav.privacy")}
             </Link>
             {" · "}
             <Link to="/terms" className="hover:text-foreground">
-              CGU
+              {t("nav.terms")}
             </Link>
+            {" · "}
+            {/* Permet de constater d'un coup d'œil quelle version est en ligne. */}
+            <span title="Version déployée" className="tabular">
+              {__BUILD_ID__}
+            </span>
           </p>
         </div>
       </aside>
