@@ -4,17 +4,18 @@ import { Home, Search, PlusCircle, Trophy, Users, User, Bell, Swords, LogOut } f
 import type { ReactNode } from "react";
 import { InfinityGlyph, InfinityMark } from "@/components/brand/InfinityMark";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { getLevel, levelProgress } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
-  { to: "/feed", label: "Fil d'actualité", short: "Fil", icon: Home },
-  { to: "/search", label: "Recherche", short: "Recherche", icon: Search },
-  { to: "/create", label: "Créer", short: "Créer", icon: PlusCircle },
-  { to: "/competitions", label: "Compétitions", short: "Défis", icon: Swords },
-  { to: "/leaderboard", label: "Classement", short: "Classement", icon: Trophy },
-  { to: "/rooms", label: "Salons", short: "Salons", icon: Users },
-  { to: "/profile", label: "Profil", short: "Profil", icon: User },
+  { to: "/feed", label: "nav.feed", short: "nav.feed.short", icon: Home },
+  { to: "/search", label: "nav.search", short: "nav.search.short", icon: Search },
+  { to: "/create", label: "nav.create", short: "nav.create.short", icon: PlusCircle },
+  { to: "/competitions", label: "nav.competitions", short: "nav.competitions.short", icon: Swords },
+  { to: "/leaderboard", label: "nav.leaderboard", short: "nav.leaderboard.short", icon: Trophy },
+  { to: "/rooms", label: "nav.rooms", short: "nav.rooms.short", icon: Users },
+  { to: "/profile", label: "nav.profile", short: "nav.profile.short", icon: User },
 ] as const;
 
 function useUnreadCount() {
@@ -81,6 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, session, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const level = getLevel(profile?.xp ?? 0);
 
   // Toutes les pages n'ont pas de garde de session : on renvoie explicitement
@@ -95,13 +97,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col justify-between border-r border-border bg-surface px-4 py-6 md:flex">
+      <aside className="fixed inset-y-0 start-0 z-40 hidden w-60 flex-col justify-between border-e border-border bg-surface px-4 py-6 md:flex">
         <div>
           <Link to="/feed" className="flex items-center gap-2">
             <InfinityMark className="h-9 w-9" glow />
             <span className="text-xl font-black tracking-[-0.04em]">STEMFLOW</span>
           </Link>
-          <p className="mt-1 label-xs">Scroll. Learn. Level Up.</p>
+          <p className="mt-1 label-xs">{t("brand.tagline")}</p>
 
           <nav className="mt-8 space-y-1">
             {NAV.map(({ to, label, icon: Icon }) => (
@@ -115,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                {label}
+                {t(label)}
               </Link>
             ))}
             <Link
@@ -134,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </span>
                 )}
               </span>
-              Notifications
+              {t("nav.notifications")}
             </Link>
           </nav>
         </div>
@@ -149,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
             >
               <LogOut className="h-5 w-5" />
-              Se déconnecter
+              {t("nav.signOut")}
             </button>
           )}
           <p className="text-[11px] text-muted-foreground">
@@ -180,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {session && (
             <button
               onClick={() => void handleSignOut()}
-              aria-label="Se déconnecter"
+              aria-label={t("nav.signOut")}
               className="rounded-full border border-border bg-surface-2 p-1.5 text-muted-foreground"
             >
               <LogOut className="h-4 w-4" />
@@ -189,7 +191,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="md:pl-60">
+      <main className="md:ps-60">
         <div className="pb-20 md:pb-0">{children}</div>
       </main>
 

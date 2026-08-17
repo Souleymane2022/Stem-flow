@@ -5,6 +5,7 @@ import { Check, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { LOCALES, useI18n, type Locale } from "@/lib/i18n";
 import { CATEGORIES, CATEGORY_META } from "@/lib/categories";
 import { InfinityMark } from "@/components/brand/InfinityMark";
 
@@ -14,7 +15,8 @@ export const Route = createFileRoute("/onboarding")({
       { title: "Personnalise ton fil — STEMFLOW" },
       {
         name: "description",
-        content: "Choisis ta langue, ton niveau d'études et tes centres d'intérêt STEM pour un fil sur mesure.",
+        content:
+          "Choisis ta langue, ton niveau d'études et tes centres d'intérêt STEM pour un fil sur mesure.",
       },
       { property: "og:title", content: "Personnalise ton fil — STEMFLOW" },
       { property: "og:description", content: "4 étapes pour un fil STEM adapté à ton niveau." },
@@ -23,29 +25,28 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
 
-const LANGUAGES = [
-  { value: "fr", label: "Français", flag: "🇫🇷" },
-  { value: "en", label: "English", flag: "🇬🇧" },
-];
-
 const EDUCATION = [
-  { value: "college", label: "Collège", emoji: "📗" },
-  { value: "lycee", label: "Lycée", emoji: "📘" },
-  { value: "universite", label: "Université", emoji: "🎓" },
-  { value: "autodidacte", label: "Autodidacte", emoji: "🚀" },
-];
+  { value: "college", key: "education.college", emoji: "📗" },
+  { value: "lycee", key: "education.lycee", emoji: "📘" },
+  { value: "universite", key: "education.universite", emoji: "🎓" },
+  { value: "autodidacte", key: "education.autodidacte", emoji: "🚀" },
+] as const;
 
 const LEVELS = [
-  { value: "debutant", label: "Débutant", description: "Je découvre les sciences" },
-  { value: "intermediaire", label: "Intermédiaire", description: "J'ai déjà des bases solides" },
-  { value: "avance", label: "Avancé", description: "Je veux aller plus loin" },
-];
+  { value: "debutant", key: "level.debutant", description: "level.debutant.description" },
+  {
+    value: "intermediaire",
+    key: "level.intermediaire",
+    description: "level.intermediaire.description",
+  },
+  { value: "avance", key: "level.avance", description: "level.avance.description" },
+] as const;
 
 function OnboardingPage() {
   const navigate = useNavigate();
   const { session, profile, loading, refreshProfile } = useAuth();
+  const { t, locale, setLocale } = useI18n();
   const [step, setStep] = useState(0);
-  const [language, setLanguage] = useState("fr");
   const [education, setEducation] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [level, setLevel] = useState("");
@@ -57,7 +58,12 @@ function OnboardingPage() {
     else if (profile?.onboarding_completed) navigate({ to: "/feed" });
   }, [session, profile, loading, navigate]);
 
-  const steps = ["Langue", "Études", "Intérêts", "Niveau"];
+  const steps = [
+    "onboarding.step.language",
+    "onboarding.step.education",
+    "onboarding.step.interests",
+    "onboarding.step.level",
+  ] as const;
   const canContinue = [true, !!education, interests.length > 0, !!level][step];
 
   const finish = async () => {
@@ -66,7 +72,7 @@ function OnboardingPage() {
     const { error } = await supabase
       .from("profiles")
       .update({
-        preferred_language: language,
+        preferred_language: locale,
         education_level: education,
         interests,
         bio: level,
@@ -75,11 +81,11 @@ function OnboardingPage() {
       .eq("id", session.user.id);
     setBusy(false);
     if (error) {
-      toast.error("Impossible d'enregistrer tes préférences.");
+      toast.error(t("onboarding.saveFailed"));
       return;
     }
     await refreshProfile();
-    toast.success("Ton fil est prêt 🎉");
+    toast.success(t("onboarding.ready"));
     navigate({ to: "/feed" });
   };
 
@@ -100,11 +106,23 @@ function OnboardingPage() {
           </div>
         </div>
 
-        <motion.div key={step} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} className="mt-10">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mt-10"
+        >
           {step === 0 && (
-            <Section title="Quelle langue préfères-tu ?" subtitle="Tu pourras la changer plus tard.">
-              {LANGUAGES.map((l) => (
-                <Option key={l.value} selected={language === l.value} onClick={() => setLanguage(l.value)}>
+            <Section
+              title={t("onboarding.language.title")}
+              subtitle={t("onboarding.language.subtitle")}
+            >
+              {LOCALES.map((l) => (
+                <Option
+                  key={l.value}
+                  selected={locale === l.value}
+                  onClick={() => setLocale(l.value as Locale)}
+                >
                   <span className="text-xl">{l.flag}</span> {l.label}
                 </Option>
               ))}
@@ -112,17 +130,27 @@ function OnboardingPage() {
           )}
 
           {step === 1 && (
-            <Section title="Où en es-tu dans tes études ?" subtitle="Pour adapter la difficulté des contenus.">
+            <Section
+              title={t("onboarding.education.title")}
+              subtitle={t("onboarding.education.subtitle")}
+            >
               {EDUCATION.map((e) => (
-                <Option key={e.value} selected={education === e.value} onClick={() => setEducation(e.value)}>
-                  <span className="text-xl">{e.emoji}</span> {e.label}
+                <Option
+                  key={e.value}
+                  selected={education === e.value}
+                  onClick={() => setEducation(e.value)}
+                >
+                  <span className="text-xl">{e.emoji}</span> {t(e.key)}
                 </Option>
               ))}
             </Section>
           )}
 
           {step === 2 && (
-            <Section title="Qu'est-ce qui te passionne ?" subtitle="Choisis au moins un domaine.">
+            <Section
+              title={t("onboarding.interests.title")}
+              subtitle={t("onboarding.interests.subtitle")}
+            >
               <div className="grid grid-cols-2 gap-2.5">
                 {CATEGORIES.map((name) => {
                   const c = CATEGORY_META[name];
@@ -140,7 +168,11 @@ function OnboardingPage() {
                       }`}
                     >
                       <span className="text-2xl">{c.emoji}</span>
-                      <p className={`mt-2 text-sm font-bold ${active ? c.text : "text-foreground"}`}>{name}</p>
+                      <p
+                        className={`mt-2 text-sm font-bold ${active ? c.text : "text-foreground"}`}
+                      >
+                        {name}
+                      </p>
                     </button>
                   );
                 })}
@@ -149,12 +181,18 @@ function OnboardingPage() {
           )}
 
           {step === 3 && (
-            <Section title="Ton niveau en sciences ?" subtitle="On calibrera tes quiz et tes missions.">
+            <Section title={t("onboarding.level.title")} subtitle={t("onboarding.level.subtitle")}>
               {LEVELS.map((l) => (
-                <Option key={l.value} selected={level === l.value} onClick={() => setLevel(l.value)}>
+                <Option
+                  key={l.value}
+                  selected={level === l.value}
+                  onClick={() => setLevel(l.value)}
+                >
                   <span className="flex flex-col">
-                    <span>{l.label}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{l.description}</span>
+                    <span>{t(l.key)}</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {t(l.description)}
+                    </span>
                   </span>
                 </Option>
               ))}
@@ -169,7 +207,7 @@ function OnboardingPage() {
             onClick={() => setStep(step - 1)}
             className="rounded-xl border border-border bg-surface-2 px-5 py-3.5 text-sm font-bold"
           >
-            Retour
+            {t("onboarding.back")}
           </button>
         )}
         <button
@@ -177,7 +215,7 @@ function OnboardingPage() {
           disabled={!canContinue || busy}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3.5 text-sm font-black text-primary-foreground disabled:opacity-40"
         >
-          {step === 3 ? "Découvrir mon fil" : "Continuer"}
+          {step === 3 ? t("onboarding.finish") : t("onboarding.continue")}
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -216,7 +254,9 @@ function Option({
     <button
       onClick={onClick}
       className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left text-sm font-bold transition-colors ${
-        selected ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface-2 hover:border-primary/40"
+        selected
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-surface-2 hover:border-primary/40"
       }`}
     >
       <span className="flex items-center gap-3">{children}</span>

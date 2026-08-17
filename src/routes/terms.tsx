@@ -7,7 +7,8 @@ export const Route = createFileRoute("/terms")({
       { title: "Conditions d'utilisation — STEMFLOW" },
       {
         name: "description",
-        content: "Les règles de la communauté STEMFLOW : publication, respect, propriété intellectuelle.",
+        content:
+          "Les règles de la communauté STEMFLOW : publication, respect, propriété intellectuelle.",
       },
       { property: "og:title", content: "Conditions d'utilisation — STEMFLOW" },
       { property: "og:description", content: "Les règles de vie de la communauté STEMFLOW." },
@@ -25,22 +26,24 @@ function TermsPage() {
           <h2 className="text-lg font-extrabold">1. Objet</h2>
           <p>
             STEMFLOW est une plateforme sociale éducative dédiée aux sciences, à la technologie, à
-            l'ingénierie et aux mathématiques, destinée principalement à la jeunesse africaine francophone.
+            l'ingénierie et aux mathématiques, destinée principalement à la jeunesse africaine
+            francophone.
           </p>
           <h2 className="text-lg font-extrabold">2. Compte</h2>
           <p>
-            Tu es responsable de la confidentialité de tes identifiants et de toute activité effectuée depuis
-            ton compte.
+            Tu es responsable de la confidentialité de tes identifiants et de toute activité
+            effectuée depuis ton compte.
           </p>
           <h2 className="text-lg font-extrabold">3. Contenus publiés</h2>
           <p>
-            Les contenus doivent rester pédagogiques, respectueux et libres de droits ou correctement
-            attribués. Tout contenu haineux, trompeur ou hors sujet peut être retiré.
+            Les contenus doivent rester pédagogiques, respectueux et libres de droits ou
+            correctement attribués. Tout contenu haineux, trompeur ou hors sujet peut être retiré.
           </p>
           <h2 className="text-lg font-extrabold">4. Gamification</h2>
           <p>
-            L'XP, les niveaux et les badges sont purement symboliques et n'ont aucune valeur monétaire. Toute
-            tentative de manipulation du système peut entraîner la suspension du compte.
+            L'XP, les niveaux et les badges sont purement symboliques et n'ont aucune valeur
+            monétaire. Toute tentative de manipulation du système peut entraîner la suspension du
+            compte.
           </p>
         </div>
       </article>

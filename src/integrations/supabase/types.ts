@@ -864,6 +864,7 @@ export type Database = {
     }
     Functions: {
       add_xp: { Args: { amount: number }; Returns: number }
+      increment_shares: { Args: { content_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

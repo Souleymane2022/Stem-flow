@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { useXpPopup } from "@/components/gamification/XpPopup";
 import { AppShell } from "@/components/layout/AppShell";
 import { FeedCard, type ContentRow } from "@/components/feed/FeedCard";
@@ -39,16 +40,20 @@ export const Route = createFileRoute("/feed")({
  */
 const PLAYER_WINDOW = 1;
 
+/** Sentinelle du filtre « tous contenus », distincte des noms de catégorie. */
+const FOR_YOU = "__for_you__";
+
 function FeedPage() {
   const navigate = useNavigate();
   const { session, profile, loading, awardXp } = useAuth();
   const pushXp = useXpPopup();
+  const { t } = useI18n();
 
   const [items, setItems] = useState<ContentRow[]>([]);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
   const [likes, setLikes] = useState<Set<string>>(new Set());
   const [saves, setSaves] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<string>("Pour toi");
+  const [filter, setFilter] = useState<string>(FOR_YOU);
   const [active, setActive] = useState(0);
   const [fetching, setFetching] = useState(true);
   const [commentsFor, setCommentsFor] = useState<string | null>(null);
@@ -79,13 +84,13 @@ function FeedPage() {
         .order("created_at", { ascending: false })
         .limit(40);
 
-      if (filter !== "Pour toi") query = query.eq("category", filter);
+      if (filter !== FOR_YOU) query = query.eq("category", filter);
 
       const { data } = await query;
       if (!alive) return;
       let rows = (data as ContentRow[]) ?? [];
 
-      if (filter === "Pour toi" && profile?.interests?.length) {
+      if (filter === FOR_YOU && profile?.interests?.length) {
         const liked = new Set(profile.interests);
         rows = [...rows].sort(
           (a, b) => Number(liked.has(b.category)) - Number(liked.has(a.category)),
@@ -237,33 +242,43 @@ function FeedPage() {
         await supabase
           .from("content_saves")
           .insert({ content_id: content.id, user_id: session.user.id });
-        toast.success("Ajouté à tes favoris");
+        toast.success(t("feed.saved"));
       }
     },
-    [saves, session],
+    [saves, session, t],
   );
 
-  const share = useCallback(async (content: ContentRow) => {
-    const url = `${window.location.origin}/feed`;
-    try {
-      if (navigator.share) await navigator.share({ title: content.title, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Lien copié !");
+  const share = useCallback(
+    async (content: ContentRow) => {
+      const url = `${window.location.origin}/feed`;
+      try {
+        if (navigator.share) await navigator.share({ title: content.title, url });
+        else {
+          await navigator.clipboard.writeText(url);
+          toast.success(t("feed.linkCopied"));
+        }
+      } catch {
+        /* annulé par l'utilisateur */
       }
-    } catch {
-      /* annulé par l'utilisateur */
-    }
-    setItems((prev) =>
-      prev.map((i) => (i.id === content.id ? { ...i, shares_count: i.shares_count + 1 } : i)),
-    );
-    await supabase
-      .from("contents")
-      .update({ shares_count: content.shares_count + 1 })
-      .eq("id", content.id);
-  }, []);
+      setItems((prev) =>
+        prev.map((i) => (i.id === content.id ? { ...i, shares_count: i.shares_count + 1 } : i)),
+      );
+      // Un UPDATE direct est refusé par la politique `contents_update_own` dès que
+      // l'on partage le contenu d'autrui : on passe par une fonction dédiée.
+      const { error } = await supabase.rpc("increment_shares", { content_id: content.id });
+      if (error) {
+        console.error("[feed] compteur de partages non incrémenté", error);
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === content.id ? { ...i, shares_count: Math.max(0, i.shares_count - 1) } : i,
+          ),
+        );
+      }
+    },
+    [t],
+  );
 
-  const filters = useMemo(() => ["Pour toi", ...CATEGORIES], []);
+  const filters = useMemo(() => [FOR_YOU, ...CATEGORIES], []);
   const activeItem = items[active];
 
   return (
@@ -281,7 +296,7 @@ function FeedPage() {
                   : "border-border bg-background/60 text-muted-foreground"
               }`}
             >
-              {f}
+              {f === FOR_YOU ? t("feed.forYou") : f}
             </button>
           ))}
         </div>
@@ -289,16 +304,14 @@ function FeedPage() {
         <div ref={containerRef} className="snap-feed h-full">
           {fetching && (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Chargement du fil…
+              {t("feed.loading")}
             </div>
           )}
 
           {!fetching && items.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
               <p className="text-4xl">🛰️</p>
-              <p className="text-sm text-muted-foreground">
-                Aucun contenu dans cette catégorie pour l'instant.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("feed.empty")}</p>
             </div>
           )}
 
@@ -332,7 +345,7 @@ function FeedPage() {
                 onShare={() => void share(content)}
                 onOpenArticle={() => setArticleFor(content)}
                 onOpenQuiz={() => setQuizFor(content.id)}
-                onXp={() => toast.info(`Ce contenu rapporte ${content.xp_reward} XP`)}
+                onXp={() => toast.info(t("feed.xpHint", { count: content.xp_reward }))}
               />
             </section>
           ))}

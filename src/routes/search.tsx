@@ -11,7 +11,8 @@ export const Route = createFileRoute("/search")({
       { title: "Explorer les contenus STEM — STEMFLOW" },
       {
         name: "description",
-        content: "Recherche des vidéos, articles et quiz par mot-clé, catégorie ou niveau de difficulté.",
+        content:
+          "Recherche des vidéos, articles et quiz par mot-clé, catégorie ou niveau de difficulté.",
       },
       { property: "og:title", content: "Explorer les contenus STEM — STEMFLOW" },
       { property: "og:description", content: "Trouve le contenu STEM qui te correspond." },
@@ -83,7 +84,9 @@ function SearchPage() {
               key={c}
               onClick={() => setCategory(c)}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-bold ${
-                category === c ? "border-primary bg-primary/15 text-primary" : "border-border bg-surface-2 text-muted-foreground"
+                category === c
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border bg-surface-2 text-muted-foreground"
               }`}
             >
               {c}
@@ -107,9 +110,13 @@ function SearchPage() {
                 <span className="text-2xl">{meta.emoji}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{row.title}</p>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{row.description}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {row.description}
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold">
-                    <span className={`rounded-full border px-2 py-0.5 ${meta.bg} ${meta.border} ${meta.text}`}>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 ${meta.bg} ${meta.border} ${meta.text}`}
+                    >
                       {row.category}
                     </span>
                     <span className="rounded-full border border-border px-2 py-0.5 text-muted-foreground">

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { InfinityMark, Wordmark } from "@/components/brand/InfinityMark";
 
 export const Route = createFileRoute("/auth")({
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const { session, profile, loading } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -48,10 +50,10 @@ function AuthPage() {
         },
       });
       if (error) toast.error(error.message);
-      else toast.success("Compte créé ! Bienvenue sur STEMFLOW.");
+      else toast.success(t("auth.created"));
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error("Identifiants incorrects.");
+      if (error) toast.error(t("auth.badCredentials"));
     }
     setBusy(false);
   };
@@ -73,8 +75,8 @@ function AuthPage() {
     setBusy(false);
     toast.error(
       /not enabled|unsupported provider/i.test(error.message)
-        ? "Le fournisseur Google n'est pas activé dans Supabase."
-        : `Connexion Google impossible : ${error.message}`,
+        ? t("auth.googleDisabled")
+        : t("auth.googleFailed", { message: error.message }),
     );
   };
 
@@ -86,7 +88,7 @@ function AuthPage() {
           <InfinityMark className="h-14 w-14" glow />
           <Wordmark />
           <p className="mt-2 text-[11px] font-semibold tracking-[0.3em] text-muted-foreground">
-            SCROLL. LEARN. LEVEL UP.
+            {t("brand.tagline")}
           </p>
         </div>
 
@@ -99,7 +101,7 @@ function AuthPage() {
                 mode === m ? "bg-gradient-brand text-primary-foreground" : "text-muted-foreground"
               }`}
             >
-              {m === "signup" ? "Inscription" : "Connexion"}
+              {m === "signup" ? t("auth.signup") : t("auth.signin")}
             </button>
           ))}
         </div>
@@ -107,22 +109,22 @@ function AuthPage() {
         <form onSubmit={submit} className="mt-6 space-y-3">
           {mode === "signup" && (
             <Field
-              label="Nom d'utilisateur"
+              label={t("auth.username")}
               value={username}
               onChange={setUsername}
-              placeholder="amina_stem"
+              placeholder={t("auth.username.placeholder")}
             />
           )}
           <Field
-            label="Email"
+            label={t("auth.email")}
             type="email"
             value={email}
             onChange={setEmail}
-            placeholder="toi@exemple.com"
+            placeholder={t("auth.email.placeholder")}
             required
           />
           <Field
-            label="Mot de passe"
+            label={t("auth.password")}
             type="password"
             value={password}
             onChange={setPassword}
@@ -134,12 +136,17 @@ function AuthPage() {
             disabled={busy}
             className="w-full rounded-xl bg-gradient-brand py-3.5 text-sm font-black text-primary-foreground disabled:opacity-50"
           >
-            {busy ? "Patiente…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}
+            {busy
+              ? t("auth.busy")
+              : mode === "signup"
+                ? t("auth.submit.signup")
+                : t("auth.submit.signin")}
           </button>
         </form>
 
         <div className="my-5 flex items-center gap-3 text-[11px] font-semibold text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> OU <span className="h-px flex-1 bg-border" />
+          <span className="h-px flex-1 bg-border" /> {t("auth.or")}{" "}
+          <span className="h-px flex-1 bg-border" />
         </div>
 
         <button
@@ -165,12 +172,11 @@ function AuthPage() {
               d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.2-3.2A12 12 0 0 0 1.8 7.1l3.8 3C6.5 7.4 9 4.8 12 4.8Z"
             />
           </svg>
-          Continuer avec Google
+          {t("auth.google")}
         </button>
 
         <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-          En continuant, tu acceptes nos conditions d'utilisation et notre politique de
-          confidentialité.
+          {t("auth.legal")}
         </p>
       </div>
     </main>

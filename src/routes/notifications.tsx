@@ -11,7 +11,8 @@ export const Route = createFileRoute("/notifications")({
       { title: "Notifications — STEMFLOW" },
       {
         name: "description",
-        content: "Retrouve tes badges débloqués, tes nouveaux abonnés et les réactions à tes publications.",
+        content:
+          "Retrouve tes badges débloqués, tes nouveaux abonnés et les réactions à tes publications.",
       },
       { property: "og:title", content: "Notifications — STEMFLOW" },
       { property: "og:description", content: "Toute ton activité STEMFLOW en un coup d'œil." },
@@ -63,7 +64,12 @@ function NotificationsPage() {
       .channel("notifications-page")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${session.user.id}`,
+        },
         () => void load(),
       )
       .subscribe();
@@ -77,7 +83,11 @@ function NotificationsPage() {
   const markAll = async () => {
     if (!session) return;
     setItems((prev) => prev.map((i) => ({ ...i, read: true })));
-    await supabase.from("notifications").update({ read: true }).eq("user_id", session.user.id).eq("read", false);
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", session.user.id)
+      .eq("read", false);
   };
 
   return (
@@ -113,7 +123,10 @@ function NotificationsPage() {
                 <p className="text-sm font-bold">{n.title}</p>
                 {n.message && <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>}
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  {new Date(n.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  {new Date(n.created_at).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </p>
               </div>
             </div>

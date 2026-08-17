@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Flame, LogOut, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { LOCALES, useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
 import { getLevel, levelBgClass, levelProgress } from "@/lib/xp";
 import { categoryMeta } from "@/lib/categories";
@@ -38,6 +39,7 @@ type Badge = { id: string; name: string; icon: string; description: string | nul
 function ProfilePage() {
   const { profile, session, loading, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t, locale, setLocale } = useI18n();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [earned, setEarned] = useState<Set<string>>(new Set());
@@ -91,7 +93,7 @@ function ProfilePage() {
     return (
       <AppShell>
         <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">
-          Chargement…
+          {t("common.loading")}
         </div>
       </AppShell>
     );
@@ -105,23 +107,21 @@ function ProfilePage() {
       <AppShell>
         <div className="mx-auto flex h-[60vh] max-w-sm flex-col items-center justify-center gap-4 px-6 text-center">
           <p className="text-4xl">🛰️</p>
-          <h1 className="text-lg font-bold">Profil introuvable</h1>
-          <p className="text-sm text-muted-foreground">
-            Ton compte existe, mais sa fiche de profil n'a pas pu être chargée.
-          </p>
+          <h1 className="text-lg font-bold">{t("profile.notFound")}</h1>
+          <p className="text-sm text-muted-foreground">{t("profile.notFound.description")}</p>
           <div className="flex flex-wrap justify-center gap-2">
             <button
               onClick={() => void refreshProfile()}
               className="rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-black text-primary-foreground"
             >
-              Réessayer
+              {t("profile.retry")}
             </button>
             <button
               onClick={() => void signOut()}
               className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-5 py-2.5 text-sm font-semibold"
             >
               <LogOut className="h-4 w-4" />
-              Se déconnecter
+              {t("nav.signOut")}
             </button>
           </div>
         </div>
@@ -149,13 +149,13 @@ function ProfilePage() {
             <div className="mt-3 flex gap-4 text-xs">
               <span className="font-bold text-primary tabular">{profile.xp} XP</span>
               <span className="flex items-center gap-1 font-bold text-engineering">
-                <Flame className="h-3.5 w-3.5" /> {profile.streak} jours
+                <Flame className="h-3.5 w-3.5" /> {t("profile.days", { count: profile.streak })}
               </span>
             </div>
           </div>
           <button
             onClick={() => void signOut()}
-            aria-label="Se déconnecter"
+            aria-label={t("nav.signOut")}
             className="rounded-xl border border-border bg-surface-2 p-2.5 text-muted-foreground hover:text-foreground"
           >
             <LogOut className="h-4 w-4" />
@@ -166,7 +166,9 @@ function ProfilePage() {
           <div className="flex items-center justify-between text-xs font-bold">
             <span>{level.label}</span>
             <span className="text-muted-foreground">
-              {next ? `${remaining} XP → ${next.label}` : "Niveau max"}
+              {next
+                ? t("profile.toNextLevel", { count: remaining, level: next.label })
+                : t("profile.maxLevel")}
             </span>
           </div>
           <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-background">
@@ -177,9 +179,9 @@ function ProfilePage() {
           </div>
         </section>
 
-        <Section title="Missions du jour" icon={<Settings className="h-4 w-4" />}>
+        <Section title={t("profile.missions")} icon={<Settings className="h-4 w-4" />}>
           {missions.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucune mission aujourd'hui.</p>
+            <p className="text-sm text-muted-foreground">{t("profile.missions.empty")}</p>
           )}
           <div className="space-y-2">
             {missions.map((m) => (
@@ -202,7 +204,27 @@ function ProfilePage() {
           </div>
         </Section>
 
-        <Section title="Badges">
+        <Section title={t("profile.language")}>
+          <div className="flex flex-wrap gap-2">
+            {LOCALES.map((l) => (
+              <button
+                key={l.value}
+                onClick={() => setLocale(l.value)}
+                lang={l.value}
+                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+                  locale === l.value
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border bg-surface-2 text-muted-foreground hover:border-primary/40"
+                }`}
+              >
+                <span className="text-base">{l.flag}</span>
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        <Section title={t("profile.badges")}>
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
             {badges.map((b) => {
               const has = earned.has(b.id);
@@ -224,9 +246,9 @@ function ProfilePage() {
           </div>
         </Section>
 
-        <Section title="Contenus enregistrés">
+        <Section title={t("profile.saved")}>
           {saved.length === 0 && (
-            <p className="text-sm text-muted-foreground">Rien d'enregistré pour l'instant.</p>
+            <p className="text-sm text-muted-foreground">{t("profile.saved.empty")}</p>
           )}
           <div className="space-y-2">
             {saved.map((c) => (

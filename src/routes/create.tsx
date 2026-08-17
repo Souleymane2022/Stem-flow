@@ -15,7 +15,8 @@ export const Route = createFileRoute("/create")({
       { title: "Publier un contenu — STEMFLOW" },
       {
         name: "description",
-        content: "Partage une vidéo YouTube ou un article STEM avec la communauté STEMFLOW et gagne de l'XP.",
+        content:
+          "Partage une vidéo YouTube ou un article STEM avec la communauté STEMFLOW et gagne de l'XP.",
       },
       { property: "og:title", content: "Publier un contenu — STEMFLOW" },
       { property: "og:description", content: "Deviens créateur STEM sur STEMFLOW." },
@@ -96,7 +97,9 @@ function CreatePage() {
               key={t.value}
               onClick={() => setType(t.value)}
               className={`rounded-xl border py-3 text-sm font-bold transition-colors ${
-                type === t.value ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface-2"
+                type === t.value
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-surface-2"
               }`}
             >
               {t.label}
@@ -159,7 +162,9 @@ function CreatePage() {
                   type="button"
                   onClick={() => setCategory(c)}
                   className={`rounded-full border px-3.5 py-1.5 text-xs font-bold ${
-                    category === c ? "border-primary bg-primary/15 text-primary" : "border-border bg-surface-2 text-muted-foreground"
+                    category === c
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border bg-surface-2 text-muted-foreground"
                   }`}
                 >
                   {c}

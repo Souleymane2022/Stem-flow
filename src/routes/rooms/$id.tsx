@@ -22,8 +22,20 @@ export const Route = createFileRoute("/rooms/$id")({
   component: RoomPage,
 });
 
-type Room = { id: string; name: string; description: string | null; category: string; member_count: number };
-type Post = { id: string; username: string | null; text: string; created_at: string; user_id: string };
+type Room = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  member_count: number;
+};
+type Post = {
+  id: string;
+  username: string | null;
+  text: string;
+  created_at: string;
+  user_id: string;
+};
 
 function RoomPage() {
   const { id } = Route.useParams();
@@ -37,7 +49,11 @@ function RoomPage() {
     let alive = true;
     void (async () => {
       const [{ data: r }, { data: p }] = await Promise.all([
-        supabase.from("rooms").select("id,name,description,category,member_count").eq("id", id).maybeSingle(),
+        supabase
+          .from("rooms")
+          .select("id,name,description,category,member_count")
+          .eq("id", id)
+          .maybeSingle(),
         supabase
           .from("room_posts")
           .select("id,username,text,created_at,user_id")
@@ -113,7 +129,11 @@ function RoomPage() {
     <AppShell>
       <div className="mx-auto flex h-[calc(100dvh-7.75rem)] max-w-3xl flex-col px-4 md:h-screen md:px-8">
         <div className="flex items-center gap-3 py-4">
-          <Link to="/rooms" aria-label="Retour" className="text-muted-foreground hover:text-foreground">
+          <Link
+            to="/rooms"
+            aria-label="Retour"
+            className="text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <span className="text-2xl">{meta.emoji}</span>
@@ -124,7 +144,9 @@ function RoomPage() {
           <button
             onClick={toggleJoin}
             className={`rounded-full px-4 py-2 text-xs font-bold ${
-              joined ? "border border-border bg-surface-2 text-muted-foreground" : "bg-gradient-brand text-primary-foreground"
+              joined
+                ? "border border-border bg-surface-2 text-muted-foreground"
+                : "bg-gradient-brand text-primary-foreground"
             }`}
           >
             {joined ? "Quitter" : "Rejoindre"}
@@ -146,7 +168,11 @@ function RoomPage() {
                     mine ? "bg-primary/20 text-foreground" : "bg-elevated"
                   }`}
                 >
-                  {!mine && <p className="text-[11px] font-bold text-primary">@{post.username ?? "membre"}</p>}
+                  {!mine && (
+                    <p className="text-[11px] font-bold text-primary">
+                      @{post.username ?? "membre"}
+                    </p>
+                  )}
                   <p className="text-sm">{post.text}</p>
                 </div>
               </div>

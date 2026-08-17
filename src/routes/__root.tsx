@@ -13,6 +13,7 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/useAuth";
+import { I18nProvider } from "@/lib/i18n";
 import { XpPopupProvider } from "@/components/gamification/XpPopup";
 
 function NotFoundComponent() {
@@ -152,11 +153,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <XpPopupProvider>
-          {/* Required: nested routes render here. */}
-          <Outlet />
-          <Toaster theme="dark" position="top-center" richColors />
-        </XpPopupProvider>
+        <I18nProvider>
+          <XpPopupProvider>
+            {/* Required: nested routes render here. */}
+            <Outlet />
+            <Toaster theme="dark" position="top-center" richColors />
+          </XpPopupProvider>
+        </I18nProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

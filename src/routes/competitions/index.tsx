@@ -17,7 +17,10 @@ export const Route = createFileRoute("/competitions/")({
           "Défie d'autres membres sur la notion de ton choix : maths, physique, code, robotique. Questions générées à la demande.",
       },
       { property: "og:title", content: "Compétitions STEM — STEMFLOW" },
-      { property: "og:description", content: "Crée un défi sur une notion et affronte la communauté en direct." },
+      {
+        property: "og:description",
+        content: "Crée un défi sur une notion et affronte la communauté en direct.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -82,7 +85,10 @@ function CompetitionsPage() {
       const { data: parts } = await supabase
         .from("competition_participants")
         .select("competition_id")
-        .in("competition_id", list.map((c) => c.id));
+        .in(
+          "competition_id",
+          list.map((c) => c.id),
+        );
       const map: Record<string, number> = {};
       for (const row of (parts as { competition_id: string }[]) ?? []) {
         map[row.competition_id] = (map[row.competition_id] ?? 0) + 1;
@@ -96,7 +102,11 @@ function CompetitionsPage() {
     void load();
     const channel = supabase
       .channel("competitions-list")
-      .on("postgres_changes", { event: "*", schema: "public", table: "competitions" }, () => void load())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "competitions" },
+        () => void load(),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -223,7 +233,10 @@ function CompetitionsPage() {
           </button>
           {!user && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              <Link to="/auth" className="text-primary">Connecte-toi</Link> pour créer ou rejoindre un défi.
+              <Link to="/auth" className="text-primary">
+                Connecte-toi
+              </Link>{" "}
+              pour créer ou rejoindre un défi.
             </p>
           )}
         </div>
@@ -232,7 +245,9 @@ function CompetitionsPage() {
         <h2 className="mt-8 text-base font-bold">Défis de la communauté</h2>
         {loading && <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>}
         {!loading && items.length === 0 && (
-          <p className="mt-3 text-sm text-muted-foreground">Aucun défi pour l'instant. Sois le premier !</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Aucun défi pour l'instant. Sois le premier !
+          </p>
         )}
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -246,7 +261,9 @@ function CompetitionsPage() {
                 className={`rounded-2xl border ${meta.border} bg-surface p-4 transition-colors hover:bg-surface-2`}
               >
                 <div className="flex items-center justify-between">
-                  <span className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}>
+                  <span
+                    className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}
+                  >
                     {meta.emoji} {c.category}
                   </span>
                   <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
@@ -254,7 +271,9 @@ function CompetitionsPage() {
                   </span>
                 </div>
                 <p className="mt-2 line-clamp-2 font-bold">{c.topic}</p>
-                <p className="mt-1 text-xs text-muted-foreground">par {c.host_name ?? "un membre"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  par {c.host_name ?? "un membre"}
+                </p>
                 <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" /> {counts[c.id] ?? 0}

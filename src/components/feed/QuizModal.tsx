@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Check, ChevronRight, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { useXpPopup } from "@/components/gamification/XpPopup";
 import { XP_REWARDS } from "@/lib/xp";
 
@@ -16,6 +17,7 @@ type Question = {
 export function QuizModal({ contentId, onClose }: { contentId: string; onClose: () => void }) {
   const { profile, awardXp } = useAuth();
   const pushXp = useXpPopup();
+  const { t } = useI18n();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -23,6 +25,7 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [rewarded, setRewarded] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -58,52 +61,94 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
     setSelected(null);
     setRevealed(false);
 
-
     if (index + 1 < questions.length) {
       setIndex(index + 1);
       return;
     }
 
     setFinished(true);
-    const finalScore = nextAnswers.filter((a, i) => a === questions[i]?.correct_option_index).length;
-    if (profile) {
-      await supabase.from("quiz_attempts").insert({
-        user_id: profile.id,
-        content_id: contentId,
-        answers: nextAnswers,
-        score: finalScore,
-        total_questions: questions.length,
-      });
-      const gain =
-        XP_REWARDS.quizPass + (finalScore === questions.length ? XP_REWARDS.quizPerfect : 0);
-      await awardXp(gain);
-      pushXp(gain);
+    const finalScore = nextAnswers.filter(
+      (a, i) => a === questions[i]?.correct_option_index,
+    ).length;
+    if (!profile) return;
+
+    // L'XP n'est accordé qu'à la première tentative : sans ce contrôle, rouvrir
+    // le même quiz en boucle permettait d'accumuler de l'XP indéfiniment.
+    const { count: previous } = await supabase
+      .from("quiz_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", profile.id)
+      .eq("content_id", contentId);
+
+    await supabase.from("quiz_attempts").insert({
+      user_id: profile.id,
+      content_id: contentId,
+      answers: nextAnswers,
+      score: finalScore,
+      total_questions: questions.length,
+    });
+
+    if ((previous ?? 0) > 0) {
+      setRewarded(false);
+      return;
     }
+    const gain =
+      XP_REWARDS.quizPass + (finalScore === questions.length ? XP_REWARDS.quizPerfect : 0);
+    await awardXp(gain);
+    pushXp(gain);
+    setRewarded(true);
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg rounded-3xl border border-border bg-elevated p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
           <p className="label-xs">
-            {finished ? "Résultat" : `Question ${Math.min(index + 1, questions.length)} / ${questions.length}`}
+            {finished
+              ? t("quiz.result")
+              : t("quiz.progress", {
+                  current: Math.min(index + 1, questions.length),
+                  total: questions.length,
+                })}
           </p>
-          <button onClick={onClose} aria-label="Fermer" className="text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onClose}
+            aria-label={t("common.close")}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {loading && <p className="text-sm text-muted-foreground">Chargement du quiz…</p>}
+        {loading && <p className="text-sm text-muted-foreground">{t("quiz.loading")}</p>}
+
+        {/* Sans ce cas, un quiz sans question affichait une fenêtre vide et
+            « Question 0 / 0 », sans aucun moyen d'avancer. */}
+        {!loading && questions.length === 0 && (
+          <div className="py-8 text-center">
+            <p className="text-4xl">🧪</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("quiz.emptyTitle")}</p>
+            <button
+              onClick={onClose}
+              className="mt-6 w-full rounded-xl bg-gradient-brand py-3 text-sm font-black text-primary-foreground"
+            >
+              {t("quiz.backToFeed")}
+            </button>
+          </div>
+        )}
 
         {!loading && !finished && current && (
           <>
             <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-surface-2">
               <div
                 className="h-full bg-gradient-brand transition-all duration-500"
-                style={{ width: `${(index / questions.length) * 100}%` }}
+                style={{ width: `${((index + (revealed ? 1 : 0)) / questions.length) * 100}%` }}
               />
             </div>
             <h3 className="text-lg font-extrabold">{current.question}</h3>
@@ -128,7 +173,9 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
                   >
                     {option}
                     {revealed && isCorrect && <Check className="h-4 w-4 shrink-0" />}
-                    {revealed && !isCorrect && selected === i && <XCircle className="h-4 w-4 shrink-0" />}
+                    {revealed && !isCorrect && selected === i && (
+                      <XCircle className="h-4 w-4 shrink-0" />
+                    )}
                     {!revealed && selected === i && <Check className="h-4 w-4 shrink-0" />}
                   </button>
                 );
@@ -142,7 +189,9 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
                     selected === current.correct_option_index ? "text-primary" : "text-destructive"
                   }`}
                 >
-                  {selected === current.correct_option_index ? "✅ Bonne réponse !" : "❌ Pas tout à fait…"}
+                  {selected === current.correct_option_index
+                    ? t("quiz.correct")
+                    : t("quiz.incorrect")}
                 </p>
                 {current.explanation && (
                   <p className="mt-1 text-xs text-muted-foreground">{current.explanation}</p>
@@ -155,21 +204,32 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
               disabled={selected === null}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-3 text-sm font-black text-primary-foreground disabled:opacity-40"
             >
-              {!revealed ? "Valider" : index + 1 === questions.length ? "Terminer" : "Suivant"}
+              {!revealed
+                ? t("quiz.validate")
+                : index + 1 === questions.length
+                  ? t("quiz.finish")
+                  : t("quiz.next")}
               <ChevronRight className="h-4 w-4" />
             </button>
-
           </>
         )}
 
         {finished && (
           <div className="py-6 text-center">
-            <p className="text-5xl">{score === questions.length ? "🏆" : score > questions.length / 2 ? "🎉" : "💪"}</p>
+            <p className="text-5xl">
+              {score === questions.length ? "🏆" : score > questions.length / 2 ? "🎉" : "💪"}
+            </p>
             <h3 className="mt-4 text-2xl font-black">
-              Score : {score}/{questions.length} questions
+              {t("quiz.score", { score, total: questions.length })}
             </h3>
             <p className="mt-1 text-sm text-primary">
-              XP gagnés : +{XP_REWARDS.quizPass + (score === questions.length ? XP_REWARDS.quizPerfect : 0)}
+              {rewarded
+                ? t("quiz.xpGained", {
+                    count:
+                      XP_REWARDS.quizPass +
+                      (score === questions.length ? XP_REWARDS.quizPerfect : 0),
+                  })
+                : t("quiz.alreadyDone")}
             </p>
             <div className="mt-6 space-y-3 text-left">
               {questions.map((q, i) => (
@@ -180,9 +240,11 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
                       answers[i] === q.correct_option_index ? "text-primary" : "text-destructive"
                     }`}
                   >
-                    Bonne réponse : {q.options[q.correct_option_index]}
+                    {t("quiz.answer", { answer: q.options[q.correct_option_index] ?? "" })}
                   </p>
-                  {q.explanation && <p className="mt-1 text-xs text-muted-foreground">{q.explanation}</p>}
+                  {q.explanation && (
+                    <p className="mt-1 text-xs text-muted-foreground">{q.explanation}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -190,7 +252,7 @@ export function QuizModal({ contentId, onClose }: { contentId: string; onClose: 
               onClick={onClose}
               className="mt-6 w-full rounded-xl bg-gradient-brand py-3 text-sm font-black text-primary-foreground"
             >
-              Retour au fil
+              {t("quiz.backToFeed")}
             </button>
           </div>
         )}

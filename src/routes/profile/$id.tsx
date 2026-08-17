@@ -43,9 +43,16 @@ function PublicProfilePage() {
     let alive = true;
     void (async () => {
       const [{ data: p }, { data: c }, { count }] = await Promise.all([
-        supabase.from("profiles").select("id,username,bio,xp,streak,interests").eq("id", id).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("id,username,bio,xp,streak,interests")
+          .eq("id", id)
+          .maybeSingle(),
         supabase.from("contents").select("id,title,category").eq("author_id", id).limit(20),
-        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", id),
+        supabase
+          .from("follows")
+          .select("follower_id", { count: "exact", head: true })
+          .eq("following_id", id),
       ]);
       if (!alive) return;
       setPerson((p as PublicProfile) ?? null);
@@ -77,7 +84,11 @@ function PublicProfilePage() {
   const toggleFollow = async () => {
     if (!session || session.user.id === id) return;
     if (following) {
-      await supabase.from("follows").delete().eq("follower_id", session.user.id).eq("following_id", id);
+      await supabase
+        .from("follows")
+        .delete()
+        .eq("follower_id", session.user.id)
+        .eq("following_id", id);
       setFollowing(false);
       setFollowers((f) => Math.max(0, f - 1));
     } else {
@@ -91,7 +102,9 @@ function PublicProfilePage() {
   if (!person) {
     return (
       <AppShell>
-        <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">Chargement…</div>
+        <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">
+          Chargement…
+        </div>
       </AppShell>
     );
   }
@@ -107,7 +120,9 @@ function PublicProfilePage() {
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl">@{person.username}</h1>
-            <span className={`mt-1.5 inline-block rounded-full border px-2.5 py-1 text-[11px] font-bold ${levelBgClass[level.token]}`}>
+            <span
+              className={`mt-1.5 inline-block rounded-full border px-2.5 py-1 text-[11px] font-bold ${levelBgClass[level.token]}`}
+            >
               {level.icon} {level.label}
             </span>
             <div className="mt-3 flex gap-4 text-xs font-bold">
@@ -120,7 +135,9 @@ function PublicProfilePage() {
             <button
               onClick={toggleFollow}
               className={`rounded-full px-4 py-2 text-xs font-bold ${
-                following ? "border border-border bg-surface-2 text-muted-foreground" : "bg-gradient-brand text-primary-foreground"
+                following
+                  ? "border border-border bg-surface-2 text-muted-foreground"
+                  : "bg-gradient-brand text-primary-foreground"
               }`}
             >
               {following ? "Abonné" : "Suivre"}
@@ -133,7 +150,10 @@ function PublicProfilePage() {
             {person.interests.map((i) => {
               const meta = categoryMeta(i);
               return (
-                <span key={i} className={`rounded-full border px-3 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}>
+                <span
+                  key={i}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}
+                >
                   {meta.emoji} {i}
                 </span>
               );
@@ -141,11 +161,18 @@ function PublicProfilePage() {
           </div>
         ) : null}
 
-        <h2 className="mt-8 text-sm font-black uppercase tracking-wider text-muted-foreground">Publications</h2>
+        <h2 className="mt-8 text-sm font-black uppercase tracking-wider text-muted-foreground">
+          Publications
+        </h2>
         <div className="mt-3 space-y-2">
-          {contents.length === 0 && <p className="text-sm text-muted-foreground">Aucune publication.</p>}
+          {contents.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucune publication.</p>
+          )}
           {contents.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface-2 p-3.5">
+            <div
+              key={c.id}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-surface-2 p-3.5"
+            >
               <span className="text-xl">{categoryMeta(c.category).emoji}</span>
               <span className="truncate text-sm font-semibold">{c.title}</span>
             </div>

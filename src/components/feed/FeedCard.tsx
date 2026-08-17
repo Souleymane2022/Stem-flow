@@ -16,6 +16,7 @@ import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
 import { categoryMeta, difficultyLabel } from "@/lib/categories";
 import { InfinityGlyph } from "@/components/brand/InfinityMark";
 import { youtubeThumbnail } from "@/utils/youtube";
+import { useI18n } from "@/lib/i18n";
 
 export type ContentRow = {
   id: string;
@@ -79,6 +80,7 @@ export function FeedCard({
   onOpenQuiz,
   onXp,
 }: Props) {
+  const { t } = useI18n();
   const meta = categoryMeta(content.category);
   const lastTap = useRef(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -135,7 +137,8 @@ export function FeedCard({
           <HelpCircle className={`h-14 w-14 ${meta.text}`} />
           <h2 className="mt-5 max-w-md px-8 text-center text-3xl">{content.title}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {questionCount ?? 0} questions · {difficultyLabel(content.difficulty)}
+            {t("feed.questions", { count: questionCount ?? 0 })} ·{" "}
+            {difficultyLabel(content.difficulty)}
           </p>
           <button
             onClick={(e) => {
@@ -144,7 +147,7 @@ export function FeedCard({
             }}
             className="mt-6 rounded-full bg-gradient-brand px-6 py-3 text-sm font-black text-primary-foreground"
           >
-            Commencer le quiz
+            {t("feed.startQuiz")}
           </button>
         </div>
       ) : (
@@ -172,7 +175,7 @@ export function FeedCard({
               }}
               className="mt-5 rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-black text-primary-foreground"
             >
-              Lire l'article
+              {t("feed.readArticle")}
             </button>
           </div>
         </div>
@@ -239,7 +242,7 @@ export function FeedCard({
       </div>
 
       {/* Right action rail */}
-      <div className="absolute bottom-28 right-3 z-30 flex flex-col items-center gap-5 md:bottom-32 md:right-6">
+      <div className="absolute bottom-28 end-3 z-30 flex flex-col items-center gap-5 md:bottom-32 md:end-6">
         <ActionButton
           label={String(content.likes_count)}
           onClick={onToggleLike}
@@ -268,16 +271,16 @@ export function FeedCard({
             e.stopPropagation();
             onToggleMute();
           }}
-          aria-label={muted ? "Activer le son" : "Couper le son"}
-          className="absolute right-3 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-background/70 text-foreground backdrop-blur transition-transform active:scale-90 md:right-6"
+          aria-label={muted ? t("feed.unmute") : t("feed.mute")}
+          className="absolute end-3 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-background/70 text-foreground backdrop-blur transition-transform active:scale-90 md:end-6"
         >
           {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5 text-primary" />}
         </button>
       )}
 
       {content.content_type === "video" && (
-        <span className="pointer-events-none absolute left-4 top-4 z-20 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-bold text-muted-foreground md:left-8">
-          <Play className="h-3 w-3" /> Vidéo
+        <span className="pointer-events-none absolute start-4 top-4 z-20 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-bold text-muted-foreground md:start-8">
+          <Play className="h-3 w-3" /> {t("feed.video")}
         </span>
       )}
     </div>

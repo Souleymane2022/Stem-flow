@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { XP_REWARDS } from "@/lib/xp";
 
 export type Profile = {
   id: string;
@@ -122,11 +123,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
         let streak = 1;
         if (current.last_login_date === yesterday) streak = (current.streak ?? 0) + 1;
-        const bonus = streak > 1 ? 15 : 0;
+        const bonus = streak > 1 ? XP_REWARDS.dailyStreak : 0;
+        // On n'écrit pas `xp` ici : la valeur de `current` a pu être lue avant un
+        // gain d'XP concurrent, et la réécrire l'effacerait. `add_xp` incrémente
+        // côté base et recalcule le niveau.
         await supabase
           .from("profiles")
-          .update({ streak, last_login_date: today, xp: (current.xp ?? 0) + bonus })
+          .update({ streak, last_login_date: today })
           .eq("id", current.id);
+        if (bonus > 0) await supabase.rpc("add_xp", { amount: bonus });
       }
 
       // Daily missions

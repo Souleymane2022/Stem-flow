@@ -14,9 +14,15 @@ export const Route = createFileRoute("/competitions/$id")({
   head: () => ({
     meta: [
       { title: "Défi STEM en direct — STEMFLOW" },
-      { name: "description", content: "Rejoins ce défi STEM, réponds plus vite que les autres et grimpe au classement." },
+      {
+        name: "description",
+        content: "Rejoins ce défi STEM, réponds plus vite que les autres et grimpe au classement.",
+      },
       { property: "og:title", content: "Défi STEM en direct — STEMFLOW" },
-      { property: "og:description", content: "Affronte la communauté sur une notion précise et gagne de l'XP." },
+      {
+        property: "og:description",
+        content: "Affronte la communauté sur une notion précise et gagne de l'XP.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -98,12 +104,19 @@ function CompetitionRoom() {
     void loadAll();
     const channel = supabase
       .channel(`competition-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "competitions", filter: `id=eq.${id}` }, () =>
-        void loadAll(),
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "competitions", filter: `id=eq.${id}` },
+        () => void loadAll(),
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "competition_participants", filter: `competition_id=eq.${id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "competition_participants",
+          filter: `competition_id=eq.${id}`,
+        },
         () => void loadAll(),
       )
       .subscribe();
@@ -228,7 +241,10 @@ function CompetitionRoom() {
         })
         .eq("competition_id", id)
         .eq("user_id", user.id);
-      const xp = Math.max(20, Math.round((correct / Math.max(questions.length, 1)) * (comp?.xp_reward ?? 60)));
+      const xp = Math.max(
+        20,
+        Math.round((correct / Math.max(questions.length, 1)) * (comp?.xp_reward ?? 60)),
+      );
       await awardXp(xp);
       toast.success(`Défi terminé ! +${xp} XP`);
     }
@@ -274,14 +290,18 @@ function CompetitionRoom() {
           <ArrowLeft className="h-4 w-4" /> Compétitions
         </button>
 
-        <div className={`mt-4 rounded-2xl border ${meta.border} bg-gradient-to-br ${meta.gradient} p-5`}>
-          <span className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}>
+        <div
+          className={`mt-4 rounded-2xl border ${meta.border} bg-gradient-to-br ${meta.gradient} p-5`}
+        >
+          <span
+            className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}
+          >
             {meta.emoji} {comp.category}
           </span>
           <h1 className="mt-2 text-2xl font-black leading-tight">{comp.topic}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Hôte : {comp.host_name ?? "un membre"} · {comp.question_count} questions · {comp.seconds_per_question}s par
-            question
+            Hôte : {comp.host_name ?? "un membre"} · {comp.question_count} questions ·{" "}
+            {comp.seconds_per_question}s par question
           </p>
         </div>
 
@@ -331,7 +351,11 @@ function CompetitionRoom() {
             </div>
 
             {revealed && (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mt-4">
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4"
+              >
                 {current.explanation && (
                   <p className="rounded-xl border border-border bg-surface-2 p-3 text-sm text-muted-foreground">
                     {current.explanation}
@@ -355,7 +379,8 @@ function CompetitionRoom() {
             {comp.status === "lobby" && (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Le défi attend les participants. L'hôte lance la partie quand tout le monde est prêt.
+                  Le défi attend les participants. L'hôte lance la partie quand tout le monde est
+                  prêt.
                 </p>
                 {!me ? (
                   <button
@@ -375,7 +400,11 @@ function CompetitionRoom() {
                     disabled={starting}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-primary py-2.5 text-sm font-bold text-primary disabled:opacity-60"
                   >
-                    {starting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Swords className="h-4 w-4" />}
+                    {starting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Swords className="h-4 w-4" />
+                    )}
                     {starting ? "Préparation des questions…" : "Lancer la compétition"}
                   </button>
                 )}
@@ -395,8 +424,8 @@ function CompetitionRoom() {
                 )}
                 {me?.finished ? (
                   <p className="text-sm font-semibold">
-                    Ton score : <span className="text-primary tabular">{me.score} pts</span> · {me.correct_count}/
-                    {comp.question_count} bonnes réponses
+                    Ton score : <span className="text-primary tabular">{me.score} pts</span> ·{" "}
+                    {me.correct_count}/{comp.question_count} bonnes réponses
                   </p>
                 ) : (
                   me && (
@@ -433,7 +462,9 @@ function CompetitionRoom() {
           <Trophy className="h-4 w-4 text-primary" /> Classement en direct
         </h2>
         <div className="mt-3 space-y-2">
-          {ranking.length === 0 && <p className="text-sm text-muted-foreground">Aucun participant pour l'instant.</p>}
+          {ranking.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aucun participant pour l'instant.</p>
+          )}
           {ranking.map((p, i) => (
             <div
               key={p.user_id}
@@ -444,7 +475,9 @@ function CompetitionRoom() {
               <span className="w-6 text-center text-sm font-black tabular text-muted-foreground">
                 {i === 0 ? <Crown className="mx-auto h-4 w-4 text-primary" /> : i + 1}
               </span>
-              <span className="flex-1 truncate text-sm font-semibold">{p.username ?? "Membre"}</span>
+              <span className="flex-1 truncate text-sm font-semibold">
+                {p.username ?? "Membre"}
+              </span>
               <span className="text-xs text-muted-foreground">{p.correct_count} ✓</span>
               <span className="text-sm font-bold tabular text-primary">{p.score}</span>
             </div>

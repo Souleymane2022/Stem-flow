@@ -10,10 +10,14 @@ export const Route = createFileRoute("/rooms/")({
       { title: "Salons STEM — STEMFLOW" },
       {
         name: "description",
-        content: "Rejoins des salons thématiques : astronomie, code, robotique, maths et plus encore.",
+        content:
+          "Rejoins des salons thématiques : astronomie, code, robotique, maths et plus encore.",
       },
       { property: "og:title", content: "Salons STEM — STEMFLOW" },
-      { property: "og:description", content: "Discute avec des passionnés de sciences dans des salons dédiés." },
+      {
+        property: "og:description",
+        content: "Discute avec des passionnés de sciences dans des salons dédiés.",
+      },
     ],
   }),
   component: RoomsPage,
@@ -67,8 +71,12 @@ function RoomsPage() {
               >
                 <span className="text-2xl">{meta.emoji}</span>
                 <h2 className="mt-3 text-lg font-extrabold">{room.name}</h2>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{room.description}</p>
-                <p className="mt-3 text-[11px] font-bold text-primary">{room.member_count} membres</p>
+                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  {room.description}
+                </p>
+                <p className="mt-3 text-[11px] font-bold text-primary">
+                  {room.member_count} membres
+                </p>
               </Link>
             );
           })}
