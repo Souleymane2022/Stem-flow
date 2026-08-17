@@ -93,14 +93,30 @@ Le code seul ne suffit pas ; il faut aussi configurer le fournisseur :
 2. Dans *Authorized redirect URIs*, mettez l'URL de callback **de Supabase**
    (pas celle de Vercel) :
    `https://<votre-ref>.supabase.co/auth/v1/callback`
-3. **Supabase** → *Authentication* → *Providers* → **Google** : activez-le et
-   collez le *Client ID* et le *Client Secret* obtenus à l'étape 1.
-4. Vérifiez que l'étape 4 ci-dessus (Redirect URLs) inclut bien votre domaine
-   Vercel — l'application renvoie l'utilisateur sur `/auth` après Google.
+3. **Écran de consentement OAuth** (*OAuth consent screen*) : c'est l'étape la
+   plus souvent oubliée. Renseignez le nom de l'application et l'adresse de
+   support. Tant que l'écran reste en mode **Testing**, seuls les comptes
+   inscrits dans *Test users* peuvent se connecter — tous les autres reçoivent
+   `access_denied`. Ajoutez-vous comme utilisateur de test, ou passez l'écran
+   en **In production** (*Publish app*) pour ouvrir la connexion à tous.
+4. **Supabase** → *Authentication* → *Sign In / Providers* → **Google** :
+   activez-le et collez le *Client ID* et le *Client Secret* de l'étape 1.
+5. Vérifiez que l'étape 4 de la section précédente (Redirect URLs) inclut bien
+   votre domaine Vercel — l'application renvoie l'utilisateur sur `/auth` après
+   Google.
 
-Si le fournisseur n'est pas activé, l'application affiche désormais un message
-explicite (« Le fournisseur Google n'est pas activé dans Supabase. ») au lieu
-d'un échec silencieux.
+Aucune route de callback n'est à créer dans l'application : l'option
+`detectSessionInUrl` du client Supabase vaut `true` par défaut, donc la session
+est établie automatiquement au retour sur `/auth`.
+
+Messages d'erreur et cause correspondante :
+
+| Message | Cause |
+| --- | --- |
+| « Le fournisseur Google n'est pas activé dans Supabase. » | étape 4 non faite |
+| `redirect_uri_mismatch` (page Google) | l'URI de l'étape 2 ne correspond pas exactement — ce doit être l'URL Supabase, pas celle de Vercel |
+| `access_denied` (page Google) | écran de consentement en mode *Testing* et compte absent des *Test users* (étape 3) |
+| Retour sur `/auth` sans être connecté | domaine Vercel absent des *Redirect URLs* Supabase (étape 5) |
 
 ## Note sur `bun.lock`
 
