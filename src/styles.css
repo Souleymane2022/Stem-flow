@@ -1,0 +1,200 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/*
+ * STEMFLOW design system — dark only.
+ * All colors are oklch tokens. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-elevated: var(--elevated);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--elevated);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--surface-2);
+  --color-ring: var(--primary);
+
+  --color-science: var(--science);
+  --color-tech: var(--tech);
+  --color-engineering: var(--engineering);
+  --color-maths: var(--maths);
+  --color-gold: var(--engineering);
+  --color-like: var(--destructive);
+}
+
+:root,
+.dark {
+  --radius: 0.85rem;
+  --background: oklch(0.1405 0.0131 237.95);
+  --surface: oklch(0.1763 0.014 258.36);
+  --surface-2: oklch(0.2184 0.0173 248.63);
+  --elevated: oklch(0.2549 0.0313 260.42);
+  --border: oklch(0.3058 0.0497 255.94);
+  --foreground: oklch(0.9712 0.0136 258.34);
+  --muted-foreground: oklch(0.658 0.0483 246.54);
+  --primary: oklch(0.8152 0.1772 162.59);
+  --primary-foreground: oklch(0.1405 0.0131 237.95);
+  --destructive: oklch(0.6633 0.2236 28.29);
+
+  --science: oklch(0.6243 0.2056 255.49);
+  --tech: oklch(0.8152 0.1772 162.59);
+  --engineering: oklch(0.8272 0.1711 80.53);
+  --maths: oklch(0.656 0.2274 312.42);
+
+  --gradient-brand: linear-gradient(135deg, var(--primary), var(--science));
+  --gradient-veil: linear-gradient(
+    to top,
+    var(--background) 6%,
+    color-mix(in oklab, var(--background) 70%, transparent) 45%,
+    transparent 85%
+  );
+  --shadow-glow: 0 0 32px -8px color-mix(in oklab, var(--primary) 55%, transparent);
+  --shadow-card: 0 18px 48px -24px oklch(0 0 0 / 0.85);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: var(--color-background);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+@utility label-xs {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+
+@utility text-gradient-brand {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gradient-brand {
+  background: var(--gradient-brand);
+}
+
+@utility surface-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+@utility feed-veil {
+  background: var(--gradient-veil);
+}
+
+@utility snap-feed {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--primary) 60%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 22px color-mix(in oklab, var(--primary) 90%, transparent));
+  }
+}
+
+@utility animate-glow {
+  animation: glow-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes shake-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+
+@utility animate-shake {
+  animation: shake-x 0.4s ease-in-out;
+}
