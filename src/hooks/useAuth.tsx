@@ -36,6 +36,8 @@ type AuthContextValue = {
   loading: boolean;
   /** Renvoie la fiche rechargée (et la recrée si elle manque), ou null en cas d'échec. */
   refreshProfile: () => Promise<Profile | null>;
+  /** Motif du dernier échec de lecture/création du profil, pour l'afficher à l'utilisateur. */
+  profileError: string | null;
   awardXp: (amount: number) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const dailyDone = useRef<string | null>(null);
 
   const repaired = useRef<string | null>(null);
@@ -85,33 +88,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * bloquée sur « Chargement… ». La politique RLS `profiles_insert_own` autorise
    * l'utilisateur à insérer sa propre ligne. Une seule tentative par session.
    */
-  const repairProfile = useCallback(async (user: User) => {
-    if (repaired.current === user.id) return null;
-    repaired.current = user.id;
-
-    const email = user.email ?? "";
-    const meta = user.user_metadata as { username?: string; full_name?: string; name?: string };
-    const base = meta.username ?? meta.full_name ?? meta.name ?? email.split("@")[0] ?? "stemflow";
-    const username = `${base.replace(/\s+/g, "_").slice(0, 20)}_${user.id.slice(0, 4)}`;
-
+  const readProfile = useCallback(async (userId: string) => {
+    // L'erreur était ignorée : une lecture en échec (RLS, réseau) devenait
+    // indiscernable d'une ligne absente, et déclenchait une création inutile.
     const { data, error } = await supabase
       .from("profiles")
-      .insert({ id: user.id, username, email })
       .select("*")
+      .eq("id", userId)
       .maybeSingle();
-
     if (error) {
-      console.error("[auth] création du profil impossible", error);
-      return null;
+      console.error("[auth] lecture du profil impossible", error);
+      setProfileError(`lecture: ${error.message}`);
+      return { profile: null, failed: true as const };
     }
-    return (data as Profile) ?? null;
+    return { profile: (data as Profile) ?? null, failed: false as const };
   }, []);
 
-  const loadProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    setProfile((data as Profile) ?? null);
-    return (data as Profile) ?? null;
-  }, []);
+  const repairProfile = useCallback(
+    async (user: User): Promise<Profile | null> => {
+      if (repaired.current === user.id) return null;
+      repaired.current = user.id;
+
+      const email = user.email ?? "";
+      const meta = user.user_metadata as { username?: string; full_name?: string; name?: string };
+      const base =
+        meta.username ?? meta.full_name ?? meta.name ?? email.split("@")[0] ?? "stemflow";
+      const stem = base.replace(/\s+/g, "_").slice(0, 20);
+
+      const insert = async (username: string) =>
+        supabase
+          .from("profiles")
+          .insert({ id: user.id, username, email })
+          .select("*")
+          .maybeSingle();
+
+      let { data, error } = await insert(`${stem}_${user.id.slice(0, 4)}`);
+
+      // 23505 = violation d'unicité. Deux cas très différents se cachent
+      // derrière ce code, et les confondre menait à l'abandon.
+      if (error?.code === "23505") {
+        // a) La ligne existe déjà (clé primaire) : c'est la lecture qui avait
+        //    échoué, pas la ligne qui manquait. On relit.
+        const existing = await readProfile(user.id);
+        if (existing.profile) return existing.profile;
+        // b) Le nom d'utilisateur est pris : on réessaie avec un suffixe plus long.
+        ({ data, error } = await insert(`${stem}_${user.id.slice(0, 12)}`));
+      }
+
+      if (error) {
+        console.error("[auth] création du profil impossible", error);
+        setProfileError(`création: ${error.message}`);
+        return null;
+      }
+      setProfileError(null);
+      return (data as Profile) ?? null;
+    },
+    [readProfile],
+  );
+
+  const loadProfile = useCallback(
+    async (userId: string) => {
+      const { profile: found } = await readProfile(userId);
+      setProfile(found);
+      if (found) setProfileError(null);
+      return found;
+    },
+    [readProfile],
+  );
 
   const runDailyRoutine = useCallback(
     async (current: Profile) => {
@@ -235,6 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       dailyDone.current = null;
       repaired.current = null;
+      setProfileError(null);
     }
   }, []);
 
@@ -245,10 +289,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       refreshProfile,
+      profileError,
       awardXp,
       signOut,
     }),
-    [session, profile, loading, refreshProfile, awardXp, signOut],
+    [session, profile, loading, refreshProfile, profileError, awardXp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

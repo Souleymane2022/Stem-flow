@@ -37,7 +37,7 @@ type Mission = {
 type Badge = { id: string; name: string; icon: string; description: string | null };
 
 function ProfilePage() {
-  const { profile, session, loading, refreshProfile, signOut } = useAuth();
+  const { profile, session, loading, refreshProfile, profileError, signOut } = useAuth();
   const navigate = useNavigate();
   const { t, locale, setLocale } = useI18n();
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -109,6 +109,12 @@ function ProfilePage() {
           <p className="text-4xl">🛰️</p>
           <h1 className="text-lg font-bold">{t("profile.notFound")}</h1>
           <p className="text-sm text-muted-foreground">{t("profile.notFound.description")}</p>
+          {/* Le motif technique évite d'avoir à ouvrir la console pour le connaître. */}
+          {profileError && (
+            <p className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-xs text-muted-foreground">
+              {profileError}
+            </p>
+          )}
           <div className="flex flex-wrap justify-center gap-2">
             <button
               onClick={() => void refreshProfile()}

@@ -27,7 +27,7 @@ export const Route = createFileRoute("/create")({
 
 function CreatePage() {
   const navigate = useNavigate();
-  const { session, profile, refreshProfile, awardXp } = useAuth();
+  const { session, profile, refreshProfile, profileError, awardXp } = useAuth();
   const pushXp = useXpPopup();
 
   const [type, setType] = useState<"video" | "text">("video");
@@ -57,7 +57,11 @@ function CreatePage() {
     const me = profile ?? (await refreshProfile());
     if (!me) {
       setBusy(false);
-      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
+      toast.error(
+        profileError
+          ? `Profil indisponible — ${profileError}`
+          : "Ton profil n'a pas pu être chargé. Réessaie dans un instant.",
+      );
       return;
     }
     const { error } = await supabase.from("contents").insert({

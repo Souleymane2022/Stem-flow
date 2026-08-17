@@ -61,7 +61,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function CompetitionsPage() {
-  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile, profileError } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Competition[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -134,7 +134,11 @@ function CompetitionsPage() {
     const me = profile ?? (await refreshProfile());
     if (!me) {
       setCreating(false);
-      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
+      toast.error(
+        profileError
+          ? `Profil indisponible — ${profileError}`
+          : "Ton profil n'a pas pu être chargé. Réessaie dans un instant.",
+      );
       return;
     }
 

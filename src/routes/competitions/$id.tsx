@@ -63,7 +63,7 @@ type Participant = {
 
 function CompetitionRoom() {
   const { id } = Route.useParams();
-  const { user, profile, refreshProfile, awardXp } = useAuth();
+  const { user, profile, refreshProfile, profileError, awardXp } = useAuth();
   const navigate = useNavigate();
   const generate = useServerFn(generateCompetitionQuestions);
 
@@ -150,7 +150,11 @@ function CompetitionRoom() {
     // user_id référence profiles(id) : la fiche doit exister en base.
     const me = profile ?? (await refreshProfile());
     if (!me) {
-      toast.error("Ton profil n'a pas pu être chargé. Réessaie dans un instant.");
+      toast.error(
+        profileError
+          ? `Profil indisponible — ${profileError}`
+          : "Ton profil n'a pas pu être chargé. Réessaie dans un instant.",
+      );
       return;
     }
     const { error } = await supabase.from("competition_participants").insert({
