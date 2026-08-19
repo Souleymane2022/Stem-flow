@@ -41,6 +41,7 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `SUPABASE_PUBLISHABLE_KEY` | oui | Même clé publique, lue pendant le SSR |
 | `SUPABASE_SERVICE_ROLE_KEY` | oui | **Secret.** Client serveur admin (`client.server.ts`), contourne les RLS |
 | `LOVABLE_API_KEY` | non | Génération IA des questions de compétition. Sans elle, cette seule fonctionnalité échoue avec « Clé IA manquante » |
+| `YOUTUBE_API_KEY` | non | Import de playlists en cours (`courses.functions.ts`). Sans elle, seuls les cours de démarrage sont disponibles |
 
 > [!IMPORTANT]
 > Ces variables sont **obligatoires**. Le dépôt contient bien un `.env` avec les
@@ -50,9 +51,19 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 > « Missing Supabase environment variable(s): SUPABASE_URL,
 > SUPABASE_PUBLISHABLE_KEY ».
 >
-> Les noms préfixés `VITE_` suffisent à couvrir le navigateur **et** le rendu
-> serveur : Vite reprend les variables préfixées depuis l'environnement du build
-> et les injecte dans les deux bundles.
+> Les deux séries de noms sont nécessaires, et ne servent pas à la même chose :
+>
+> - `VITE_…` est **injecté à la compilation**. Vite reprend les variables
+>   préfixées depuis l'environnement du build et les inscrit dans le bundle
+>   client comme dans le rendu serveur (`client.ts` les lit via
+>   `import.meta.env`).
+> - `SUPABASE_URL` et `SUPABASE_PUBLISHABLE_KEY` sans préfixe sont lus **à
+>   l'exécution**, côté serveur uniquement, par `auth-middleware.ts` — le
+>   middleware que traverse *chaque* server function. Ces deux noms n'ont
+>   aucun repli sur `import.meta.env` : sans eux, l'import de playlist et la
+>   génération de questions échouent même si les `VITE_…` sont renseignées.
+> - `SUPABASE_SERVICE_ROLE_KEY` est lu à l'exécution par `client.server.ts`,
+>   qui a besoin en plus de `SUPABASE_URL` sans préfixe.
 
 Après ajout ou modification d'une variable, il faut **redéployer** : elles sont
 lues à la compilation, pas à chaud. *Deployments* → dernier déploiement →
