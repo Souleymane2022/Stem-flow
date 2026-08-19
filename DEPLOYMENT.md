@@ -40,7 +40,8 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `SUPABASE_URL` | oui | Même URL, lue pendant le SSR |
 | `SUPABASE_PUBLISHABLE_KEY` | oui | Même clé publique, lue pendant le SSR |
 | `SUPABASE_SERVICE_ROLE_KEY` | oui | **Secret.** Client serveur admin (`client.server.ts`), contourne les RLS |
-| `LOVABLE_API_KEY` | non | Génération IA des questions de compétition. Sans elle, cette seule fonctionnalité échoue avec « Clé IA manquante » |
+| `GEMINI_API_KEY` | non | Génération IA des questions de défi, via l'API Google. À créer dans la même console que `YOUTUBE_API_KEY`, après avoir activé *Generative Language API* |
+| `LOVABLE_API_KEY` | non | Ancienne passerelle IA de Lovable. Utilisée en priorité si elle est présente ; inutile sur un projet détaché de Lovable |
 | `YOUTUBE_API_KEY` | non | Import de playlists en cours (`courses.functions.ts`). Sans elle, seuls les cours de démarrage sont disponibles |
 
 > [!IMPORTANT]

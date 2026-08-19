@@ -372,6 +372,7 @@ export type Database = {
           host_name: string | null
           id: string
           question_count: number
+          source_course_id: string | null
           seconds_per_question: number
           started_at: string | null
           status: string
@@ -388,6 +389,7 @@ export type Database = {
           host_name?: string | null
           id?: string
           question_count?: number
+          source_course_id?: string | null
           seconds_per_question?: number
           started_at?: string | null
           status?: string
@@ -404,6 +406,7 @@ export type Database = {
           host_name?: string | null
           id?: string
           question_count?: number
+          source_course_id?: string | null
           seconds_per_question?: number
           started_at?: string | null
           status?: string

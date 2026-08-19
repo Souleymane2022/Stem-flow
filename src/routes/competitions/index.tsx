@@ -28,6 +28,14 @@ export const Route = createFileRoute("/competitions/")({
   component: CompetitionsPage,
 });
 
+/** Cours dans lequel l'utilisateur a déjà de la progression. */
+type FollowedCourse = {
+  course_id: string;
+  progress_percent: number;
+  completed_lessons: number;
+  courses: { title: string; category: string; difficulty: string } | null;
+};
+
 type Competition = {
   id: string;
   topic: string;
@@ -68,6 +76,8 @@ function CompetitionsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
+  const [followed, setFollowed] = useState<FollowedCourse[]>([]);
+  const [sourceCourseId, setSourceCourseId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [difficulty, setDifficulty] = useState("debutant");
@@ -97,6 +107,24 @@ function CompetitionsPage() {
     }
     setLoading(false);
   }, []);
+
+  // Cours déjà entamés : ce sont les seuls dont l'IA peut tirer un défi ancré
+  // dans ce que l'utilisateur a réellement regardé.
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("course_enrollments")
+        .select("course_id,progress_percent,completed_lessons,courses(title,category,difficulty)")
+        .eq("user_id", user.id)
+        .order("progress_percent", { ascending: false });
+      if (alive) setFollowed((data as unknown as FollowedCourse[]) ?? []);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     void load();
@@ -152,6 +180,7 @@ function CompetitionsPage() {
         difficulty,
         question_count: questionCount,
         xp_reward: 60,
+        source_course_id: sourceCourseId,
       })
       .select("id")
       .single();
@@ -170,6 +199,7 @@ function CompetitionsPage() {
     if (joinError) console.error("[competitions] inscription de l'hôte impossible", joinError);
     setCreating(false);
     setTopic("");
+    setSourceCourseId(null);
     void navigate({ to: "/competitions/$id", params: { id: data.id } });
   };
 
@@ -188,6 +218,52 @@ function CompetitionsPage() {
           <h2 className="flex items-center gap-2 text-base font-bold">
             <Sparkles className="h-4 w-4 text-primary" /> Lancer un défi
           </h2>
+          {followed.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Depuis un cours que tu suis
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {followed.map((f) => {
+                  const active = sourceCourseId === f.course_id;
+                  return (
+                    <button
+                      key={f.course_id}
+                      type="button"
+                      onClick={() => {
+                        if (active) {
+                          setSourceCourseId(null);
+                          return;
+                        }
+                        setSourceCourseId(f.course_id);
+                        // Le sujet reste modifiable : il sert de titre au défi,
+                        // tandis que les questions viennent des leçons.
+                        if (f.courses) {
+                          setTopic(f.courses.title);
+                          setCategory(f.courses.category);
+                          setDifficulty(f.courses.difficulty);
+                        }
+                      }}
+                      className={`max-w-full truncate rounded-full border px-3 py-1.5 text-xs font-bold ${
+                        active
+                          ? "border-primary bg-primary/15 text-primary"
+                          : "border-border bg-surface-2 text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      🎓 {f.courses?.title ?? "Cours"} · {f.progress_percent} %
+                    </button>
+                  );
+                })}
+              </div>
+              {sourceCourseId && (
+                <p className="mt-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-[11px] text-primary">
+                  Les questions seront tirées des leçons de ce cours, en priorité celles que tu as
+                  terminées.
+                </p>
+              )}
+            </div>
+          )}
+
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -195,16 +271,17 @@ function CompetitionsPage() {
             className="mt-3 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setTopic(s)}
-                className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground"
-              >
-                {s}
-              </button>
-            ))}
+            {!sourceCourseId &&
+              SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setTopic(s)}
+                  className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground"
+                >
+                  {s}
+                </button>
+              ))}
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
