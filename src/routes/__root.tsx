@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -41,6 +42,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const path = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -52,6 +54,26 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Une erreur est survenue
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">Veuillez réessayer.</p>
+
+        {/* Le message était masqué : il fallait ouvrir la console du navigateur
+            pour savoir quoi que ce soit. L'afficher rend la panne diagnosticable
+            depuis un téléphone, où la console n'est pas accessible. */}
+        <p className="mt-4 break-words rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-start text-xs text-destructive">
+          <span className="font-bold">{path}</span>
+          {" — "}
+          {error.message || error.name || "erreur sans message"}
+        </p>
+        {error.stack && (
+          <details className="mt-2 text-start">
+            <summary className="cursor-pointer text-[11px] text-muted-foreground">
+              Détail technique
+            </summary>
+            <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-surface-2 p-2 text-[10px] leading-snug text-muted-foreground">
+              {error.stack}
+            </pre>
+          </details>
+        )}
+
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
