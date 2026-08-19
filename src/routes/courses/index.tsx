@@ -47,6 +47,7 @@ function CoursesPage() {
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [certificates, setCertificates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
@@ -54,12 +55,20 @@ function CoursesPage() {
   const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("courses")
       .select("id,title,description,category,difficulty,thumbnail_url,lesson_count,xp_reward")
       .eq("published", true)
       .order("created_at", { ascending: false });
-    setCourses((data as Course[]) ?? []);
+    // Sans ce report, une table absente ou un refus de privilèges s'affichait
+    // comme « aucun cours », ce qui envoie chercher le problème au mauvais endroit.
+    if (error) {
+      console.error("[cours] chargement impossible", error);
+      setLoadError(error.message);
+    } else {
+      setLoadError(null);
+      setCourses((data as Course[]) ?? []);
+    }
     setLoading(false);
   }, []);
 
@@ -164,7 +173,12 @@ function CoursesPage() {
         )}
 
         {loading && <p className="mt-6 text-sm text-muted-foreground">{t("courses.loading")}</p>}
-        {!loading && courses.length === 0 && (
+        {!loading && loadError && (
+          <p className="mt-6 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {loadError}
+          </p>
+        )}
+        {!loading && !loadError && courses.length === 0 && (
           <p className="mt-6 text-sm text-muted-foreground">{t("courses.empty")}</p>
         )}
 

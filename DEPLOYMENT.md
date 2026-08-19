@@ -42,10 +42,21 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `SUPABASE_SERVICE_ROLE_KEY` | oui | **Secret.** Client serveur admin (`client.server.ts`), contourne les RLS |
 | `LOVABLE_API_KEY` | non | Génération IA des questions de compétition. Sans elle, cette seule fonctionnalité échoue avec « Clé IA manquante » |
 
-Le dépôt contient un `.env` avec les valeurs publiques (URL + clé `sb_publishable_`),
-ce qui permet au build de passer même sans configuration. Déclarer malgré tout ces
-variables dans Vercel reste préférable : cela vous permet de changer de projet
-Supabase sans recommit.
+> [!IMPORTANT]
+> Ces variables sont **obligatoires**. Le dépôt contient bien un `.env` avec les
+> valeurs publiques, mais il ne suffit pas : Vite lit ce fichier au moment du
+> build, et le build Vercel ne le reçoit pas. Sans ces variables déclarées dans
+> Vercel, l'application démarre puis affiche
+> « Missing Supabase environment variable(s): SUPABASE_URL,
+> SUPABASE_PUBLISHABLE_KEY ».
+>
+> Les noms préfixés `VITE_` suffisent à couvrir le navigateur **et** le rendu
+> serveur : Vite reprend les variables préfixées depuis l'environnement du build
+> et les injecte dans les deux bundles.
+
+Après ajout ou modification d'une variable, il faut **redéployer** : elles sont
+lues à la compilation, pas à chaud. *Deployments* → dernier déploiement →
+*Redeploy*.
 
 `SUPABASE_SERVICE_ROLE_KEY` et `LOVABLE_API_KEY` ne sont **jamais** versionnées et
 doivent obligatoirement être saisies dans Vercel. Ne les préfixez pas par `VITE_` :
