@@ -42,6 +42,7 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `SUPABASE_SERVICE_ROLE_KEY` | oui | **Secret.** Client serveur admin (`client.server.ts`), contourne les RLS |
 | `GEMINI_API_KEY` | non | Génération IA des questions de défi, via l'API Google. À créer dans la même console que `YOUTUBE_API_KEY`, après avoir activé *Generative Language API* |
 | `LOVABLE_API_KEY` | non | Ancienne passerelle IA de Lovable. Utilisée en priorité si elle est présente ; inutile sur un projet détaché de Lovable |
+| `GEMINI_MODEL` | non | Modèle Gemini à utiliser. Défaut : `gemini-3.6-flash`. Google retire ses modèles au fil des versions ; un refus nommant un remplaçant est suivi automatiquement, cette variable sert à figer un choix |
 | `AI_API_KEY` | non | Repli si Gemini est indisponible dans votre pays : n'importe quel service compatible OpenAI (OpenRouter, Groq, Mistral…). S'accompagne de `AI_BASE_URL` et `AI_MODEL` |
 | `AI_BASE_URL` | non | Racine de l'API compatible OpenAI. Défaut : `https://openrouter.ai/api/v1` |
 | `AI_MODEL` | non | Modèle à utiliser. Défaut : `google/gemini-2.0-flash-exp:free` |

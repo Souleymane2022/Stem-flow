@@ -36,6 +36,13 @@ const QUESTIONS_SCHEMA = {
 const SYSTEM_PROMPT = "Tu es un professeur de STEM francophone.";
 
 /**
+ * Modèle Gemini par défaut. Google retire ses modèles au fil des versions ;
+ * GEMINI_MODEL permet d'en changer sans toucher au code, et un refus nommant
+ * un remplaçant est suivi automatiquement.
+ */
+const GEMINI_DEFAULT_MODEL = "gemini-3.6-flash";
+
+/**
  * Interroge le fournisseur d'IA configuré et renvoie le JSON brut des questions.
  *
  * Trois fournisseurs sont acceptés, dans cet ordre :
@@ -88,23 +95,40 @@ async function askForQuestions(prompt: string): Promise<string> {
   }
 
   if (geminiKey) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          // Le mode JSON dispense d'un appel d'outil : la réponse suit
-          // directement le schéma demandé.
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: QUESTIONS_SCHEMA,
-          },
-        }),
-      },
-    );
+    const callGemini = (model: string) =>
+      fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            // Le mode JSON dispense d'un appel d'outil : la réponse suit
+            // directement le schéma demandé.
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: QUESTIONS_SCHEMA,
+            },
+          }),
+        },
+      );
+
+    let response = await callGemini(process.env["GEMINI_MODEL"] ?? GEMINI_DEFAULT_MODEL);
+
+    // Google retire régulièrement ses modèles, et indique le remplaçant dans
+    // le message de refus. Plutôt que d'imposer une correction de code à chaque
+    // fois, on suit cette indication une fois.
+    if (!response.ok) {
+      const first = (await response
+        .clone()
+        .json()
+        .catch(() => ({}))) as {
+        error?: { message?: string };
+      };
+      const replacement = first.error?.message?.match(/use\s+models\/([\w.-]+)/i)?.[1];
+      if (replacement) response = await callGemini(replacement);
+    }
 
     if (response.status === 429) throw new Error("Trop de demandes, réessaie dans un instant");
     if (!response.ok) {
@@ -115,7 +139,9 @@ async function askForQuestions(prompt: string): Promise<string> {
       throw new Error(
         /blocked|PERMISSION_DENIED|not valid|API_KEY/i.test(detail)
           ? `GEMINI_API_KEY refusée par Google : ${detail} — vérifie que la clé autorise « Generative Language API », ou crée-en une sur aistudio.google.com/app/apikey.`
-          : `Gemini : ${detail}`,
+          : /no longer available|not found/i.test(detail)
+            ? `Modèle Gemini indisponible : ${detail} — renseigne GEMINI_MODEL avec le nom indiqué.`
+            : `Gemini : ${detail}`,
       );
     }
 
