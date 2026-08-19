@@ -106,6 +106,11 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
       if (!pageToken) break;
     }
 
+    // Une même vidéo peut figurer plusieurs fois dans une playlist. La table
+    // impose UNIQUE (course_id, video_id) : sans ce dédoublonnage, l'insertion
+    // entière échouait sur « duplicate key value ». On garde la première
+    // occurrence, qui fixe l'ordre de la leçon.
+    const seen = new Set<string>();
     const lessons = items
       .map((item) => ({
         videoId: item.contentDetails?.videoId ?? item.snippet?.resourceId?.videoId ?? "",
@@ -113,7 +118,12 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
         description: item.snippet?.description ?? null,
       }))
       // Une vidéo supprimée ou privée reste dans la playlist sous ce titre.
-      .filter((l) => l.videoId && l.title && !/^(Deleted|Private) video$/i.test(l.title));
+      .filter((l) => l.videoId && l.title && !/^(Deleted|Private) video$/i.test(l.title))
+      .filter((l) => {
+        if (seen.has(l.videoId)) return false;
+        seen.add(l.videoId);
+        return true;
+      });
 
     if (lessons.length < 2)
       throw new Error("Cette playlist ne contient pas assez de vidéos lisibles");
