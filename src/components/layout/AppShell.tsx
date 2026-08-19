@@ -1,6 +1,17 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Home, Search, PlusCircle, Trophy, Users, User, Bell, Swords, LogOut } from "lucide-react";
+import {
+  Home,
+  Search,
+  PlusCircle,
+  Trophy,
+  Users,
+  User,
+  Bell,
+  Swords,
+  GraduationCap,
+  LogOut,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { InfinityGlyph, InfinityMark } from "@/components/brand/InfinityMark";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +23,7 @@ const NAV = [
   { to: "/feed", label: "nav.feed", short: "nav.feed.short", icon: Home },
   { to: "/search", label: "nav.search", short: "nav.search.short", icon: Search },
   { to: "/create", label: "nav.create", short: "nav.create.short", icon: PlusCircle },
+  { to: "/courses", label: "nav.courses", short: "nav.courses.short", icon: GraduationCap },
   { to: "/competitions", label: "nav.competitions", short: "nav.competitions.short", icon: Swords },
   { to: "/leaderboard", label: "nav.leaderboard", short: "nav.leaderboard.short", icon: Trophy },
   { to: "/rooms", label: "nav.rooms", short: "nav.rooms.short", icon: Users },
@@ -205,7 +217,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-border bg-surface/95 backdrop-blur md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-surface/95 backdrop-blur md:hidden"
+        style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}
+      >
         {NAV.map(({ to, short, icon: Icon }) => {
           const active = isActive(to);
           const isCreate = to === "/create";

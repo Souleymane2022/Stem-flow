@@ -15,6 +15,10 @@ export type YouTubePlayerLike = {
   mute: () => void;
   unMute: () => void;
   isMuted: () => boolean;
+  /** Utilisées par les cours pour mesurer le temps réellement visionné. */
+  getCurrentTime?: () => number;
+  getDuration?: () => number;
+  getPlayerState?: () => number;
 };
 
 let apiPromise: Promise<void> | null = null;

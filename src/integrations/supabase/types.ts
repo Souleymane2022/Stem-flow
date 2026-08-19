@@ -14,6 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
+      courses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string
+          id: string
+          lesson_count: number
+          passing_ratio: number
+          published: boolean
+          thumbnail_url: string | null
+          title: string
+          total_duration_seconds: number
+          updated_at: string
+          xp_reward: number
+          youtube_playlist_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          lesson_count?: number
+          passing_ratio?: number
+          published?: boolean
+          thumbnail_url?: string | null
+          title: string
+          total_duration_seconds?: number
+          updated_at?: string
+          xp_reward?: number
+          youtube_playlist_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string
+          id?: string
+          lesson_count?: number
+          passing_ratio?: number
+          published?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          total_duration_seconds?: number
+          updated_at?: string
+          xp_reward?: number
+          youtube_playlist_id?: string | null
+        }
+        Relationships: []
+      }
+      course_lessons: {
+        Row: {
+          course_id: string
+          description: string | null
+          duration_seconds: number
+          id: string
+          sort_order: number
+          title: string
+          video_id: string
+        }
+        Insert: {
+          course_id: string
+          description?: string | null
+          duration_seconds?: number
+          id?: string
+          sort_order?: number
+          title: string
+          video_id: string
+        }
+        Update: {
+          course_id?: string
+          description?: string | null
+          duration_seconds?: number
+          id?: string
+          sort_order?: number
+          title?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
+      course_enrollments: {
+        Row: {
+          completed_at: string | null
+          completed_lessons: number
+          course_id: string
+          progress_percent: number
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_lessons?: number
+          course_id: string
+          progress_percent?: number
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_lessons?: number
+          course_id?: string
+          progress_percent?: number
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lesson_progress: {
+        Row: {
+          completed: boolean
+          last_position_seconds: number
+          lesson_id: string
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          completed?: boolean
+          last_position_seconds?: number
+          lesson_id: string
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          completed?: boolean
+          last_position_seconds?: number
+          lesson_id?: string
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          course_id: string
+          course_title: string
+          id: string
+          issued_at: string
+          recipient_name: string
+          serial: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          course_title: string
+          id?: string
+          issued_at?: string
+          recipient_name: string
+          serial: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          course_title?: string
+          id?: string
+          issued_at?: string
+          recipient_name?: string
+          serial?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           category: string | null
@@ -865,6 +1033,15 @@ export type Database = {
     Functions: {
       add_xp: { Args: { amount: number }; Returns: number }
       increment_shares: { Args: { content_id: string }; Returns: number }
+      record_lesson_progress: {
+        Args: {
+          p_lesson_id: string
+          p_watched_delta: number
+          p_position?: number
+          p_duration?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

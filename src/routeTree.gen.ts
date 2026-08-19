@@ -19,8 +19,11 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as CertificatesSerialRouteImport } from './routes/certificates/$serial'
 import { Route as CompetitionsIndexRouteImport } from './routes/competitions/index'
 import { Route as CompetitionsIdRouteImport } from './routes/competitions/$id'
+import { Route as CoursesIndexRouteImport } from './routes/courses/index'
+import { Route as CoursesIdRouteImport } from './routes/courses/$id'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as ProfileIdRouteImport } from './routes/profile/$id'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
@@ -76,6 +79,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CertificatesSerialRoute = CertificatesSerialRouteImport.update({
+  id: '/certificates/$serial',
+  path: '/certificates/$serial',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompetitionsIndexRoute = CompetitionsIndexRouteImport.update({
   id: '/competitions/',
   path: '/competitions/',
@@ -84,6 +92,16 @@ const CompetitionsIndexRoute = CompetitionsIndexRouteImport.update({
 const CompetitionsIdRoute = CompetitionsIdRouteImport.update({
   id: '/competitions/$id',
   path: '/competitions/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/courses/',
+  path: '/courses/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesIdRoute = CoursesIdRouteImport.update({
+  id: '/courses/$id',
+  path: '/courses/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
@@ -118,10 +136,13 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
+  '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
+  '/courses/$id': typeof CoursesIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions/': typeof CompetitionsIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/rooms/': typeof RoomsIndexRoute
 }
@@ -136,10 +157,13 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
+  '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
+  '/courses/$id': typeof CoursesIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions': typeof CompetitionsIndexRoute
+  '/courses': typeof CoursesIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/rooms': typeof RoomsIndexRoute
 }
@@ -155,10 +179,13 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
+  '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
+  '/courses/$id': typeof CoursesIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions/': typeof CompetitionsIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/rooms/': typeof RoomsIndexRoute
 }
@@ -175,10 +202,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/search'
     | '/terms'
+    | '/certificates/$serial'
     | '/competitions/$id'
+    | '/courses/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions/'
+    | '/courses/'
     | '/profile/'
     | '/rooms/'
   fileRoutesByTo: FileRoutesByTo
@@ -193,10 +223,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/search'
     | '/terms'
+    | '/certificates/$serial'
     | '/competitions/$id'
+    | '/courses/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions'
+    | '/courses'
     | '/profile'
     | '/rooms'
   id:
@@ -211,10 +244,13 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/search'
     | '/terms'
+    | '/certificates/$serial'
     | '/competitions/$id'
+    | '/courses/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions/'
+    | '/courses/'
     | '/profile/'
     | '/rooms/'
   fileRoutesById: FileRoutesById
@@ -230,10 +266,13 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SearchRoute: typeof SearchRoute
   TermsRoute: typeof TermsRoute
+  CertificatesSerialRoute: typeof CertificatesSerialRoute
   CompetitionsIdRoute: typeof CompetitionsIdRoute
+  CoursesIdRoute: typeof CoursesIdRoute
   ProfileIdRoute: typeof ProfileIdRoute
   RoomsIdRoute: typeof RoomsIdRoute
   CompetitionsIndexRoute: typeof CompetitionsIndexRoute
+  CoursesIndexRoute: typeof CoursesIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   RoomsIndexRoute: typeof RoomsIndexRoute
 }
@@ -310,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/certificates/$serial': {
+      id: '/certificates/$serial'
+      path: '/certificates/$serial'
+      fullPath: '/certificates/$serial'
+      preLoaderRoute: typeof CertificatesSerialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/competitions/': {
       id: '/competitions/'
       path: '/competitions'
@@ -322,6 +368,20 @@ declare module '@tanstack/react-router' {
       path: '/competitions/$id'
       fullPath: '/competitions/$id'
       preLoaderRoute: typeof CompetitionsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/': {
+      id: '/courses/'
+      path: '/courses'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$id': {
+      id: '/courses/$id'
+      path: '/courses/$id'
+      fullPath: '/courses/$id'
+      preLoaderRoute: typeof CoursesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile/': {
@@ -366,10 +426,13 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SearchRoute: SearchRoute,
   TermsRoute: TermsRoute,
+  CertificatesSerialRoute: CertificatesSerialRoute,
   CompetitionsIdRoute: CompetitionsIdRoute,
+  CoursesIdRoute: CoursesIdRoute,
   ProfileIdRoute: ProfileIdRoute,
   RoomsIdRoute: RoomsIdRoute,
   CompetitionsIndexRoute: CompetitionsIndexRoute,
+  CoursesIndexRoute: CoursesIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   RoomsIndexRoute: RoomsIndexRoute,
 }
