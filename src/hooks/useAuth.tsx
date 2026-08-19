@@ -26,6 +26,7 @@ export type Profile = {
   streak: number;
   last_login_date: string | null;
   onboarding_completed: boolean;
+  share_progress: boolean;
   created_at: string;
 };
 

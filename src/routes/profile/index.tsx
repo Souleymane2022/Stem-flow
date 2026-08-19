@@ -210,6 +210,34 @@ function ProfilePage() {
           </div>
         </Section>
 
+        <Section title={t("profile.shareProgress")}>
+          <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2 p-4">
+            <input
+              type="checkbox"
+              checked={profile.share_progress}
+              onChange={async (e) => {
+                const next = e.target.checked;
+                const { error } = await supabase
+                  .from("profiles")
+                  .update({ share_progress: next })
+                  .eq("id", profile.id);
+                if (error) {
+                  console.error("[profil] partage non enregistré", error);
+                  return;
+                }
+                await refreshProfile();
+              }}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-current text-primary"
+            />
+            <span className="text-sm">
+              <span className="font-bold">{t("profile.shareProgress")}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {t("profile.shareProgress.hint")}
+              </span>
+            </span>
+          </label>
+        </Section>
+
         <Section title={t("profile.language")}>
           <div className="flex flex-wrap gap-2">
             {LOCALES.map((l) => (

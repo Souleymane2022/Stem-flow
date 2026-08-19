@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Award, Check, ChevronLeft, PlayCircle } from "lucide-react";
+import { Award, Check, ChevronLeft, PlayCircle, Swords, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +40,13 @@ type Lesson = {
   sort_order: number;
 };
 type ProgressRow = { lesson_id: string; completed: boolean; watched_seconds: number };
+/** Autre apprenant du cours, tel que les politiques RLS le laissent voir. */
+type Peer = {
+  user_id: string;
+  progress_percent: number;
+  completed_lessons: number;
+  profiles: { username: string } | null;
+};
 
 /** Intervalle d'envoi de la progression. Le serveur plafonne à 30 s par appel. */
 const TICK_MS = 5000;
@@ -47,7 +55,7 @@ const MAX_REAL_DELTA = 10;
 
 function CoursePage() {
   const { id } = Route.useParams();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
 
@@ -58,6 +66,9 @@ function CoursePage() {
   const [percent, setPercent] = useState(0);
   const [serial, setSerial] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [peers, setPeers] = useState<Peer[]>([]);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [duelling, setDuelling] = useState<string | null>(null);
 
   const player = useRef<YouTubePlayerLike | null>(null);
   const lastTime = useRef(0);
@@ -131,6 +142,47 @@ function CoursePage() {
   useEffect(() => {
     if (!session && lessons.length > 0) setCurrent((prev) => prev ?? lessons[0] ?? null);
   }, [session, lessons]);
+
+  // Les autres apprenants du cours. La politique RLS ne renvoie que ceux qui
+  // ont accepté de partager leur progression : aucun filtrage à faire ici.
+  const loadPeers = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("course_enrollments")
+      .select("user_id,progress_percent,completed_lessons,profiles(username)")
+      .eq("course_id", id)
+      .order("progress_percent", { ascending: false })
+      .limit(50);
+    if (error) {
+      console.error("[cours] apprenants illisibles", error);
+      return;
+    }
+    setPeers((data as unknown as Peer[]) ?? []);
+  }, [id]);
+
+  useEffect(() => {
+    if (session) void loadPeers();
+  }, [session, loadPeers]);
+
+  const challenge = useCallback(
+    async (opponentId: string) => {
+      setDuelling(opponentId);
+      const { data, error } = await supabase.rpc("create_course_duel", {
+        p_course_id: id,
+        p_opponent_id: opponentId,
+        p_visibility: visibility,
+        p_question_count: 5,
+      });
+      setDuelling(null);
+      if (error || !data) {
+        console.error("[cours] duel impossible", error);
+        toast.error(t("peers.duelFailed", { message: error?.message ?? "réponse vide" }));
+        return;
+      }
+      toast.success(t("peers.duelCreated"));
+      void navigate({ to: "/competitions/$id", params: { id: data as string } });
+    },
+    [id, visibility, navigate, t],
+  );
 
   const push = useCallback(
     async (lessonId: string, delta: number, position: number, duration: number) => {
@@ -276,6 +328,90 @@ function CoursePage() {
               >
                 <Award className="h-4 w-4" /> {t("certificate.view")}
               </Link>
+            )}
+          </section>
+        )}
+
+        {session && (
+          <section className="mt-8">
+            <h2 className="flex items-center gap-2 text-base font-bold">
+              <Users className="h-4 w-4 text-primary" /> {t("peers.title")}
+            </h2>
+
+            {/* Le choix s'applique au prochain défi lancé. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                {t("peers.visibility")}
+              </span>
+              {(["public", "private"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setVisibility(v)}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                    visibility === v
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border bg-surface-2 text-muted-foreground"
+                  }`}
+                >
+                  {v === "public" ? t("peers.public") : t("peers.private")}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {visibility === "public" ? t("peers.publicHint") : t("peers.privateHint")}
+            </p>
+
+            {peers.length <= 1 && (
+              <p className="mt-3 text-sm text-muted-foreground">{t("peers.empty")}</p>
+            )}
+
+            <ul className="mt-3 space-y-2">
+              {peers.map((p) => {
+                const isMe = p.user_id === session.user.id;
+                return (
+                  <li
+                    key={p.user_id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2.5"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-xs font-black text-primary-foreground">
+                      {(p.profiles?.username ?? "?").charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        @{p.profiles?.username ?? "membre"}
+                        {isMe && ` (${t("peers.you")})`}
+                      </span>
+                      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-background">
+                        <span
+                          className="block h-full bg-gradient-brand"
+                          style={{ width: `${p.progress_percent}%` }}
+                        />
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs font-bold tabular text-muted-foreground">
+                      {p.progress_percent} %
+                    </span>
+                    {!isMe && (
+                      <button
+                        type="button"
+                        onClick={() => void challenge(p.user_id)}
+                        disabled={duelling !== null}
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-brand px-3 py-1.5 text-xs font-black text-background disabled:opacity-50"
+                      >
+                        <Swords className="h-3.5 w-3.5" />
+                        {t("peers.challenge")}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {profile && !profile.share_progress && (
+              <p className="mt-3 rounded-xl border border-border bg-surface-2 px-3 py-2 text-[11px] text-muted-foreground">
+                {t("peers.hidden")}
+              </p>
             )}
           </section>
         )}

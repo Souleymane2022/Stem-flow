@@ -373,6 +373,8 @@ export type Database = {
           id: string
           question_count: number
           source_course_id: string | null
+          opponent_id: string | null
+          visibility: string
           seconds_per_question: number
           started_at: string | null
           status: string
@@ -390,6 +392,8 @@ export type Database = {
           id?: string
           question_count?: number
           source_course_id?: string | null
+          opponent_id?: string | null
+          visibility?: string
           seconds_per_question?: number
           started_at?: string | null
           status?: string
@@ -407,6 +411,8 @@ export type Database = {
           id?: string
           question_count?: number
           source_course_id?: string | null
+          opponent_id?: string | null
+          visibility?: string
           seconds_per_question?: number
           started_at?: string | null
           status?: string
@@ -706,6 +712,7 @@ export type Database = {
           level: string | null
           onboarding_completed: boolean
           preferred_language: string | null
+          share_progress: boolean
           profile_image_url: string | null
           streak: number
           username: string
@@ -722,6 +729,7 @@ export type Database = {
           level?: string | null
           onboarding_completed?: boolean
           preferred_language?: string | null
+          share_progress?: boolean
           profile_image_url?: string | null
           streak?: number
           username: string
@@ -738,6 +746,7 @@ export type Database = {
           level?: string | null
           onboarding_completed?: boolean
           preferred_language?: string | null
+          share_progress?: boolean
           profile_image_url?: string | null
           streak?: number
           username?: string
@@ -1036,6 +1045,15 @@ export type Database = {
     Functions: {
       add_xp: { Args: { amount: number }; Returns: number }
       increment_shares: { Args: { content_id: string }; Returns: number }
+      create_course_duel: {
+        Args: {
+          p_course_id: string
+          p_opponent_id: string
+          p_visibility?: string
+          p_question_count?: number
+        }
+        Returns: string
+      }
       record_lesson_progress: {
         Args: {
           p_lesson_id: string
