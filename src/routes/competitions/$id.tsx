@@ -182,7 +182,16 @@ function CompetitionRoom() {
       await loadAll();
       toast.success("Le défi est lancé !");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Génération impossible");
+      const message = error instanceof Error ? error.message : "Génération impossible";
+      console.error("[competition] génération impossible", error);
+      // « Invalid API key » vient de Supabase, pas du fournisseur d'IA : le
+      // middleware des server functions lit SUPABASE_PUBLISHABLE_KEY sans
+      // préfixe. Sans cette précision, on cherche la panne du mauvais côté.
+      toast.error(
+        /invalid api key/i.test(message)
+          ? "Clé Supabase serveur invalide : vérifie SUPABASE_PUBLISHABLE_KEY dans Vercel (sans préfixe VITE_), puis redéploie."
+          : message,
+      );
     } finally {
       setStarting(false);
     }
