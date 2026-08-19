@@ -77,7 +77,7 @@ async function askForQuestions(prompt: string): Promise<string> {
 
     if (response.status === 429) throw new Error("Trop de demandes, réessaie dans un instant");
     if (response.status === 402) throw new Error("Crédits IA épuisés");
-    if (!response.ok) throw new Error(`Génération impossible (${response.status})`);
+    if (!response.ok) throw new Error(`Lovable a refusé la requête (${response.status})`);
 
     const payload = (await response.json()) as {
       choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[];
@@ -109,7 +109,14 @@ async function askForQuestions(prompt: string): Promise<string> {
     if (response.status === 429) throw new Error("Trop de demandes, réessaie dans un instant");
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-      throw new Error(body.error?.message ?? `Génération impossible (${response.status})`);
+      const detail = body.error?.message ?? `HTTP ${response.status}`;
+      // Cas le plus fréquent : une clé Google valide, mais restreinte à d'autres
+      // API (YouTube par exemple). Le message brut n'oriente pas vers la cause.
+      throw new Error(
+        /blocked|PERMISSION_DENIED|not valid|API_KEY/i.test(detail)
+          ? `GEMINI_API_KEY refusée par Google : ${detail} — vérifie que la clé autorise « Generative Language API », ou crée-en une sur aistudio.google.com/app/apikey.`
+          : `Gemini : ${detail}`,
+      );
     }
 
     const payload = (await response.json()) as {
@@ -150,7 +157,9 @@ async function askForQuestions(prompt: string): Promise<string> {
     if (response.status === 429) throw new Error("Trop de demandes, réessaie dans un instant");
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-      throw new Error(body.error?.message ?? `Génération impossible (${response.status})`);
+      throw new Error(
+        `AI_API_KEY refusée par ${baseUrl} : ${body.error?.message ?? `HTTP ${response.status}`}`,
+      );
     }
 
     const payload = (await response.json()) as {
