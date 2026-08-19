@@ -9,6 +9,20 @@
 -- qu'un tiers pouvait s'inviter dans un duel privé en devinant son
 -- identifiant. Le mode devient donc une règle d'accès, pas un simple libellé.
 
+-- Cette migration s'appuie sur 20260817040000_course_duels.sql (colonnes
+-- opponent_id et visibility). Sans elle, PostgreSQL échouerait plus bas sur un
+-- « column does not exist » qui n'indique pas la marche à suivre.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'competitions'
+       AND column_name = 'opponent_id'
+  ) THEN
+    RAISE EXCEPTION 'Applique d''abord 20260817040000_course_duels.sql : la colonne competitions.opponent_id est absente.';
+  END IF;
+END $$;
+
 ALTER TABLE public.competitions
   ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'open';
 
