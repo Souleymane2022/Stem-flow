@@ -82,6 +82,7 @@ function CompetitionsPage() {
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [difficulty, setDifficulty] = useState("debutant");
   const [questionCount, setQuestionCount] = useState(5);
+  const [mode, setMode] = useState<"solo" | "duel" | "open">("open");
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -181,6 +182,7 @@ function CompetitionsPage() {
         question_count: questionCount,
         xp_reward: 60,
         source_course_id: sourceCourseId,
+        mode,
       })
       .select("id")
       .single();
@@ -282,6 +284,47 @@ function CompetitionsPage() {
                   {s}
                 </button>
               ))}
+          </div>
+
+          {/* Le mode conditionne qui peut rejoindre : il est appliqué par les
+              politiques RLS, pas seulement affiché. */}
+          <div className="mt-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Type de défi
+            </p>
+            <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+              {(
+                [
+                  {
+                    value: "open",
+                    label: "🚪 Salon ouvert",
+                    hint: "Tout le monde peut rejoindre.",
+                  },
+                  { value: "duel", label: "⚔️ Duel", hint: "Sur invitation uniquement." },
+                  { value: "solo", label: "🎯 Solo", hint: "Tu t'entraînes seul." },
+                ] as const
+              ).map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMode(m.value)}
+                  className={`rounded-xl border px-2 py-2 text-xs font-bold ${
+                    mode === m.value
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border bg-surface-2 text-muted-foreground"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {mode === "open"
+                ? "Tout le monde peut rejoindre le salon."
+                : mode === "duel"
+                  ? "Seules les personnes que tu invites peuvent participer."
+                  : "Tu t'entraînes seul sur cette notion."}
+            </p>
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-3">

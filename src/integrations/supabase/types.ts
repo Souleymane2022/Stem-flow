@@ -152,6 +152,27 @@ export type Database = {
         }
         Relationships: []
       }
+      competition_invites: {
+        Row: {
+          competition_id: string
+          created_at: string
+          invited_by: string | null
+          user_id: string
+        }
+        Insert: {
+          competition_id: string
+          created_at?: string
+          invited_by?: string | null
+          user_id: string
+        }
+        Update: {
+          competition_id?: string
+          created_at?: string
+          invited_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           course_id: string
@@ -375,6 +396,7 @@ export type Database = {
           source_course_id: string | null
           opponent_id: string | null
           visibility: string
+          mode: string
           seconds_per_question: number
           started_at: string | null
           status: string
@@ -394,6 +416,7 @@ export type Database = {
           source_course_id?: string | null
           opponent_id?: string | null
           visibility?: string
+          mode?: string
           seconds_per_question?: number
           started_at?: string | null
           status?: string
@@ -413,6 +436,7 @@ export type Database = {
           source_course_id?: string | null
           opponent_id?: string | null
           visibility?: string
+          mode?: string
           seconds_per_question?: number
           started_at?: string | null
           status?: string
@@ -1045,6 +1069,10 @@ export type Database = {
     Functions: {
       add_xp: { Args: { amount: number }; Returns: number }
       increment_shares: { Args: { content_id: string }; Returns: number }
+      invite_to_competition: {
+        Args: { p_competition_id: string; p_user_id: string }
+        Returns: boolean
+      }
       create_course_duel: {
         Args: {
           p_course_id: string

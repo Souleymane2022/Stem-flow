@@ -41,6 +41,8 @@ type Competition = {
   seconds_per_question: number;
   status: string;
   xp_reward: number;
+  mode: string;
+  source_course_id: string | null;
 };
 
 type Question = {
@@ -51,6 +53,9 @@ type Question = {
   explanation: string | null;
   sort_order: number;
 };
+
+/** Personne du même cours, invitable par l'hôte. */
+type Invitable = { user_id: string; profiles: { username: string } | null };
 
 type Participant = {
   user_id: string;
@@ -72,6 +77,8 @@ function CompetitionRoom() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [invitables, setInvitables] = useState<Invitable[]>([]);
+  const [inviting, setInviting] = useState<string | null>(null);
 
   // état de jeu local
   const [index, setIndex] = useState(0);
@@ -139,6 +146,39 @@ function CompetitionRoom() {
   useEffect(() => {
     if (comp?.status === "running" || comp?.status === "finished") void loadQuestions();
   }, [comp?.status, loadQuestions]);
+
+  // L'hôte d'un défi adossé à un cours peut convier les autres apprenants.
+  // La politique RLS ne renvoie que ceux qui partagent leur progression.
+  useEffect(() => {
+    if (!user || !comp?.source_course_id || comp.host_id !== user.id) return;
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("course_enrollments")
+        .select("user_id,profiles(username)")
+        .eq("course_id", comp.source_course_id!)
+        .limit(50);
+      if (alive) setInvitables((data as unknown as Invitable[]) ?? []);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, comp?.source_course_id, comp?.host_id]);
+
+  const invite = async (targetId: string) => {
+    setInviting(targetId);
+    const { error } = await supabase.rpc("invite_to_competition", {
+      p_competition_id: id,
+      p_user_id: targetId,
+    });
+    setInviting(null);
+    if (error) {
+      console.error("[competition] invitation impossible", error);
+      toast.error(`Invitation impossible : ${error.message}`);
+      return;
+    }
+    toast.success("Invitation envoyée");
+  };
 
   const join = async () => {
     // Même écueil que sur la liste : le message ne parlait que de connexion
@@ -326,6 +366,13 @@ function CompetitionRoom() {
             Hôte : {comp.host_name ?? "un membre"} · {comp.question_count} questions ·{" "}
             {comp.seconds_per_question}s par question
           </p>
+          <p className="mt-1.5 text-[11px] font-bold text-muted-foreground">
+            {comp.mode === "open"
+              ? "🚪 Salon ouvert — tout le monde peut rejoindre"
+              : comp.mode === "duel"
+                ? "⚔️ Duel — sur invitation"
+                : "🎯 Solo — entraînement personnel"}
+          </p>
         </div>
 
         {/* Zone de jeu */}
@@ -478,6 +525,38 @@ function CompetitionRoom() {
               </>
             )}
           </div>
+        )}
+
+        {/* Invitations : réservées à l'hôte d'un défi issu d'un cours. */}
+        {isHost && invitables.length > 1 && (
+          <section className="mt-6 rounded-2xl border border-border bg-surface p-4">
+            <h2 className="flex items-center gap-2 text-base font-bold">
+              <Users className="h-4 w-4 text-primary" /> Inviter au salon
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {comp.mode === "open"
+                ? "Ce salon est ouvert : tout le monde peut déjà rejoindre. Une invitation prévient directement la personne."
+                : "Ce défi est sur invitation : seules les personnes conviées pourront participer."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {invitables
+                .filter(
+                  (i) =>
+                    i.user_id !== user?.id && !participants.some((p) => p.user_id === i.user_id),
+                )
+                .map((i) => (
+                  <button
+                    key={i.user_id}
+                    type="button"
+                    onClick={() => void invite(i.user_id)}
+                    disabled={inviting !== null}
+                    className="max-w-full truncate rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:border-primary/40 disabled:opacity-50"
+                  >
+                    + @{i.profiles?.username ?? "membre"}
+                  </button>
+                ))}
+            </div>
+          </section>
         )}
 
         {/* Classement */}
