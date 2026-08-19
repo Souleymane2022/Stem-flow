@@ -41,7 +41,7 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -50,10 +50,22 @@ function AuthPage() {
         },
       });
       if (error) toast.error(error.message);
+      // Sans session, le projet exige une confirmation par courriel : le dire,
+      // plutôt que d'annoncer un succès qui ne connecte à rien.
+      else if (!data.session) toast.success(t("auth.confirmEmail"));
       else toast.success(t("auth.created"));
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error(t("auth.badCredentials"));
+      // Supabase renvoie le même refus pour un mot de passe erroné et pour un
+      // compte inexistant. Tout autre motif mérite d'être affiché tel quel.
+      if (error) {
+        console.error("[auth] connexion refusée", error);
+        toast.error(
+          /invalid login credentials/i.test(error.message)
+            ? t("auth.badCredentials")
+            : t("auth.signinFailed", { message: error.message }),
+        );
+      }
     }
     setBusy(false);
   };

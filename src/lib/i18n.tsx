@@ -60,7 +60,10 @@ const fr = {
   "auth.legal":
     "En continuant, tu acceptes nos conditions d'utilisation et notre politique de confidentialité.",
   "auth.created": "Compte créé ! Bienvenue sur STEMFLOW.",
-  "auth.badCredentials": "Identifiants incorrects.",
+  "auth.badCredentials":
+    "Identifiants incorrects. Si tu n'as pas encore de compte, passe par « Inscription ».",
+  "auth.signinFailed": "Connexion impossible : {message}",
+  "auth.confirmEmail": "Compte créé. Vérifie ta boîte mail pour confirmer ton adresse.",
   "auth.googleDisabled": "Le fournisseur Google n'est pas activé dans Supabase.",
   "auth.googleFailed": "Connexion Google impossible : {message}",
 
@@ -220,7 +223,9 @@ const en: Dictionary = {
   "auth.google": "Continue with Google",
   "auth.legal": "By continuing, you accept our terms of use and our privacy policy.",
   "auth.created": "Account created! Welcome to STEMFLOW.",
-  "auth.badCredentials": "Incorrect credentials.",
+  "auth.badCredentials": "Incorrect credentials. If you do not have an account yet, use “Sign up”.",
+  "auth.signinFailed": "Sign-in failed: {message}",
+  "auth.confirmEmail": "Account created. Check your inbox to confirm your address.",
   "auth.googleDisabled": "The Google provider is not enabled in Supabase.",
   "auth.googleFailed": "Google sign-in failed: {message}",
 
@@ -377,7 +382,9 @@ const ar: Dictionary = {
   "auth.google": "المتابعة باستخدام Google",
   "auth.legal": "بمتابعتك، فإنك توافق على شروط الاستخدام وسياسة الخصوصية.",
   "auth.created": "تم إنشاء الحساب! مرحبًا بك في STEMFLOW.",
-  "auth.badCredentials": "بيانات الدخول غير صحيحة.",
+  "auth.badCredentials": "بيانات الدخول غير صحيحة. إن لم يكن لديك حساب بعد، استخدم «إنشاء حساب».",
+  "auth.signinFailed": "تعذّر تسجيل الدخول: {message}",
+  "auth.confirmEmail": "تم إنشاء الحساب. تحقّق من بريدك لتأكيد عنوانك.",
   "auth.googleDisabled": "موفّر Google غير مفعّل في Supabase.",
   "auth.googleFailed": "تعذّر تسجيل الدخول عبر Google: {message}",
 
