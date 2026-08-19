@@ -38,11 +38,14 @@ const SYSTEM_PROMPT = "Tu es un professeur de STEM francophone.";
 /**
  * Interroge le fournisseur d'IA configuré et renvoie le JSON brut des questions.
  *
- * Deux fournisseurs sont acceptés, dans cet ordre :
+ * Trois fournisseurs sont acceptés, dans cet ordre :
  *   LOVABLE_API_KEY — la passerelle d'origine, liée à un projet Lovable ;
- *   GEMINI_API_KEY  — l'API Google directement, que n'importe qui peut obtenir.
- * Sans ce second chemin, un projet détaché de Lovable n'aurait aucun moyen de
- * générer des questions.
+ *   GEMINI_API_KEY  — l'API Google directement ;
+ *   AI_API_KEY      — n'importe quel service compatible OpenAI (OpenRouter,
+ *                     Groq, Mistral, Together…), via AI_BASE_URL et AI_MODEL.
+ * Ce dernier chemin existe parce que l'API Gemini n'est pas ouverte dans tous
+ * les pays : sans lui, la génération serait inaccessible depuis certaines
+ * régions.
  */
 async function askForQuestions(prompt: string): Promise<string> {
   const lovableKey = process.env["LOVABLE_API_KEY"];
@@ -117,8 +120,50 @@ async function askForQuestions(prompt: string): Promise<string> {
     return text;
   }
 
+  // Service compatible OpenAI. Le format « chat completions » est le plus
+  // répandu ; on force la réponse en JSON plutôt qu'en appel d'outil, tous les
+  // services ne gérant pas ce dernier.
+  const genericKey = process.env["AI_API_KEY"];
+  if (genericKey) {
+    const baseUrl = (process.env["AI_BASE_URL"] ?? "https://openrouter.ai/api/v1").replace(
+      /\/$/,
+      "",
+    );
+    const model = process.env["AI_MODEL"] ?? "google/gemini-2.0-flash-exp:free";
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${genericKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: `${SYSTEM_PROMPT} Tu réponds uniquement par un objet JSON conforme à ce schéma, sans texte autour : ${JSON.stringify(QUESTIONS_SCHEMA)}`,
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (response.status === 429) throw new Error("Trop de demandes, réessaie dans un instant");
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new Error(body.error?.message ?? `Génération impossible (${response.status})`);
+    }
+
+    const payload = (await response.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const text = payload.choices?.[0]?.message?.content;
+    if (!text) throw new Error("Réponse IA invalide");
+    // Certains modèles encadrent le JSON d'un bloc de code.
+    return text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  }
+
   throw new Error(
-    "Aucune clé IA configurée : renseigne GEMINI_API_KEY (ou LOVABLE_API_KEY) dans les variables d'environnement.",
+    "Aucune clé IA configurée : renseigne GEMINI_API_KEY, ou AI_API_KEY avec AI_BASE_URL et AI_MODEL.",
   );
 }
 
