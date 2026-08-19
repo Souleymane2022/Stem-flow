@@ -59,7 +59,16 @@ export function VideoPlayer({ videoId, onPlayerReady, onPlayerDestroy }: Props) 
       const YT = (
         window as unknown as { YT: { Player: new (el: Element, opts: unknown) => unknown } }
       ).YT;
-      player = new YT.Player(hostRef.current, {
+      // YT.Player ne s'insère pas dans l'élément fourni : il le REMPLACE par une
+      // iframe. Lui passer un nœud géré par React rendait ensuite le démontage
+      // impossible — React cherchait à retirer un nœud qui n'existait plus, et
+      // l'arbre plantait. On lui donne donc un enfant jetable, créé hors de React.
+      const slot = document.createElement("div");
+      slot.style.width = "100%";
+      slot.style.height = "100%";
+      hostRef.current.appendChild(slot);
+
+      player = new YT.Player(slot, {
         videoId,
         width: "100%",
         height: "100%",
@@ -87,6 +96,9 @@ export function VideoPlayer({ videoId, onPlayerReady, onPlayerDestroy }: Props) 
       } catch {
         /* noop */
       }
+      // Si destroy() a échoué, l'iframe résiduelle est retirée à la main : le
+      // conteneur doit être vide avant que React ne reprenne la main dessus.
+      if (hostRef.current) hostRef.current.replaceChildren();
       destroyRef.current?.();
     };
   }, [videoId]);
