@@ -47,6 +47,9 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `AI_BASE_URL` | non | Racine de l'API compatible OpenAI. Défaut : `https://openrouter.ai/api/v1` |
 | `AI_MODEL` | non | Modèle à utiliser. Défaut : `google/gemini-2.0-flash-exp:free` |
 | `YOUTUBE_API_KEY` | non | Import de playlists en cours (`courses.functions.ts`). Sans elle, seuls les cours de démarrage sont disponibles |
+| `VAPID_PUBLIC_KEY` | non | Notifications poussées. Sans elle, le bouton d'activation répond que le serveur n'est pas configuré |
+| `VAPID_PRIVATE_KEY` | non | **Secret.** Signe les envois. À générer avec `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | non | Adresse de contact exigée par la spécification, sous la forme `mailto:…`. Défaut : `mailto:contact@stemflow.app` |
 | `VITE_SITE_URL` | non | Racine absolue du site (`https://mon-projet.vercel.app`), utilisée pour l'aperçu `og:image` partagé sur les réseaux. Sans elle, le chemin reste relatif et certains robots ne le résolvent pas |
 
 > [!IMPORTANT]

@@ -220,6 +220,20 @@ const fr = {
   "install.ios.share": "Appuie sur Partager,",
   "install.ios.add": "puis « Sur l'écran d'accueil ».",
 
+  "push.title": "Notifications",
+  "push.body": "Être prévenu d'un défi ou d'une invitation, même quand l'application est fermée.",
+  "push.enable": "Activer les notifications",
+  "push.disable": "Désactiver",
+  "push.enabled": "Notifications activées",
+  "push.disabled": "Notifications désactivées",
+  "push.refused": "Permission refusée.",
+  "push.failed": "Activation impossible.",
+  "push.notConfigured": "Les notifications ne sont pas encore configurées côté serveur.",
+  "push.blocked":
+    "Les notifications sont bloquées pour ce site. Il faut les réautoriser dans les réglages du navigateur.",
+  "push.iosHint":
+    "Sur iPhone, les notifications n'arrivent qu'une fois l'application ajoutée à l'écran d'accueil.",
+
   "certificate.earned": "Certificat obtenu 🎓",
   "certificate.view": "Voir mon certificat",
   "certificate.title": "Certificat de réussite",
@@ -482,6 +496,20 @@ const en: Dictionary = {
   "install.ios.share": "Tap Share,",
   "install.ios.add": "then \u00ab Add to Home Screen \u00bb.",
 
+  "push.title": "Notifications",
+  "push.body": "Get told about a challenge or an invitation, even when the app is closed.",
+  "push.enable": "Turn on notifications",
+  "push.disable": "Turn off",
+  "push.enabled": "Notifications on",
+  "push.disabled": "Notifications off",
+  "push.refused": "Permission refused.",
+  "push.failed": "Could not turn them on.",
+  "push.notConfigured": "Notifications are not configured on the server yet.",
+  "push.blocked":
+    "Notifications are blocked for this site. They must be re-allowed in the browser settings.",
+  "push.iosHint":
+    "On iPhone, notifications only arrive once the app has been added to the home screen.",
+
   "certificate.earned": "Certificate earned 🎓",
   "certificate.view": "View my certificate",
   "certificate.title": "Certificate of completion",
@@ -739,6 +767,18 @@ const ar: Dictionary = {
   "install.action": "تثبيت",
   "install.ios.share": "اضغط على مشاركة،",
   "install.ios.add": "ثم «إضافة إلى الشاشة الرئيسية».",
+
+  "push.title": "الإشعارات",
+  "push.body": "تنبيه بالتحدّيات والدعوات، حتى والتطبيق مغلق.",
+  "push.enable": "تفعيل الإشعارات",
+  "push.disable": "تعطيل",
+  "push.enabled": "الإشعارات مفعّلة",
+  "push.disabled": "الإشعارات معطّلة",
+  "push.refused": "رُفض الإذن.",
+  "push.failed": "تعذّر التفعيل.",
+  "push.notConfigured": "الإشعارات غير مهيّأة على الخادم بعد.",
+  "push.blocked": "الإشعارات محظورة لهذا الموقع. يجب السماح بها من إعدادات المتصفّح.",
+  "push.iosHint": "على الآيفون، لا تصل الإشعارات إلا بعد إضافة التطبيق إلى الشاشة الرئيسية.",
 
   "certificate.earned": "تم الحصول على الشهادة 🎓",
   "certificate.view": "عرض شهادتي",

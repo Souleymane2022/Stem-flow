@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Crown, Loader2, Swords, Timer, Trophy, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/push.functions";
 import { AppShell } from "@/components/layout/AppShell";
 import { categoryMeta } from "@/lib/categories";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,6 +71,7 @@ function CompetitionRoom() {
   const { id } = Route.useParams();
   const { user, profile, refreshProfile, profileError, awardXp } = useAuth();
   const navigate = useNavigate();
+  const pushNotify = useServerFn(notifyUser);
   const generate = useServerFn(generateCompetitionQuestions);
 
   const [comp, setComp] = useState<Competition | null>(null);
@@ -178,6 +180,11 @@ function CompetitionRoom() {
       return;
     }
     toast.success("Invitation envoyée");
+    // L'invité est prévenu sur son téléphone, sans quoi l'invitation attend
+    // qu'il pense à ouvrir l'application.
+    void pushNotify({
+      data: { userId: targetId, kind: "invite", url: `/competitions/${id}` },
+    }).catch((error) => console.error("[competition] notification non envoyée", error));
   };
 
   const join = async () => {

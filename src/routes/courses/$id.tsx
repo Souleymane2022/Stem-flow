@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Award, Check, ChevronLeft, PlayCircle, Radio, Swords, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { VideoPlayer, type YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { categoryMeta } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
+import { notifyUser } from "@/lib/push.functions";
 import { explainDbError } from "@/lib/db-errors";
 
 export const Route = createFileRoute("/courses/$id")({
@@ -61,6 +63,7 @@ function CoursePage() {
   const { session, profile } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const pushNotify = useServerFn(notifyUser);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -195,6 +198,12 @@ function CoursePage() {
         return;
       }
       toast.success(t("peers.duelCreated"));
+      // Notification poussée : l'adversaire est prévenu même s'il n'a pas
+      // l'application ouverte. Un échec ici ne doit rien casser — le défi
+      // existe, et la notification interne l'attend de toute façon.
+      void pushNotify({
+        data: { userId: opponentId, kind: "duel", url: `/competitions/${data as string}` },
+      }).catch((error) => console.error("[duel] notification non envoyée", error));
       void navigate({ to: "/competitions/$id", params: { id: data as string } });
     },
     [id, visibility, navigate, t],
