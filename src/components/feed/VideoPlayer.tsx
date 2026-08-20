@@ -19,6 +19,8 @@ export type YouTubePlayerLike = {
   getCurrentTime?: () => number;
   getDuration?: () => number;
   getPlayerState?: () => number;
+  /** Utilisée pour remettre à zéro une vidéo préchargée avant de la montrer. */
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void;
 };
 
 let apiPromise: Promise<void> | null = null;
@@ -39,6 +41,17 @@ function loadApi(): Promise<void> {
     document.head.appendChild(script);
   });
   return apiPromise;
+}
+
+/**
+ * Déclenche le chargement de l'API YouTube sans attendre le premier lecteur.
+ *
+ * Le script fait une centaine de kilo-octets et impose sa propre résolution
+ * DNS : le demander à l'ouverture du fil, plutôt qu'au montage du premier
+ * lecteur, retire ce délai du chemin critique de la première vidéo.
+ */
+export function preloadYouTubeApi(): void {
+  void loadApi();
 }
 
 export function VideoPlayer({ videoId, onPlayerReady, onPlayerDestroy }: Props) {
@@ -79,6 +92,9 @@ export function VideoPlayer({ videoId, onPlayerReady, onPlayerDestroy }: Props) 
           controls: 1,
           playsinline: 1,
           mute: 1,
+          // Annotations et cartes désactivées : autant de requêtes en moins
+          // avant la première image.
+          iv_load_policy: 3,
         },
         events: {
           onReady: (event: { target: YouTubePlayerLike }) => {

@@ -10,7 +10,7 @@ import { FeedCard, type ContentRow } from "@/components/feed/FeedCard";
 import { CommentsSheet } from "@/components/feed/CommentsSheet";
 import { QuizModal } from "@/components/feed/QuizModal";
 import { ArticleSheet } from "@/components/feed/ArticleSheet";
-import type { YouTubePlayerLike } from "@/components/feed/VideoPlayer";
+import { preloadYouTubeApi, type YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { CATEGORIES } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
 import { explainDbError } from "@/lib/db-errors";
@@ -56,6 +56,15 @@ const ENGAGEMENT_FLUSH_S = 15;
 const EMBED = "*, course:courses!contents_source_course_id_fkey (id, title)";
 /** Distance de la fin à partir de laquelle on va chercher la suite. */
 const PREFETCH_FROM_END = 3;
+/**
+ * Durée de lecture muette accordée à une vidéo voisine pour remplir sa mémoire
+ * tampon. Une iframe YouTube créée mais jamais lue ne télécharge rien : sans
+ * cette amorce, chaque passage à la vidéo suivante repartait d'un écran noir
+ * le temps d'une nouvelle requête média.
+ */
+const PREBUFFER_MS = 900;
+/** Délai laissé à la vidéo en cours avant d'amorcer la suivante. */
+const PREBUFFER_DELAY_MS = 1200;
 
 /** Sentinelle du filtre « tous contenus », distincte des noms de catégorie. */
 const FOR_YOU = "__for_you__";
@@ -120,6 +129,12 @@ function FeedPage() {
   const seed = useRef<number | null>(null);
   /** Une seule demande de suite à la fois. */
   const extending = useRef(false);
+
+  // Demandé dès l'ouverture du fil : le script de YouTube n'est plus sur le
+  // chemin critique de la première vidéo.
+  useEffect(() => {
+    preloadYouTubeApi();
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -533,10 +548,26 @@ function FeedPage() {
                   players.current.set(content.id, player);
                   // Le lecteur peut arriver après le passage de l'observer : si ce
                   // contenu est déjà le contenu actif, on démarre la lecture ici.
-                  if (activeIdRef.current !== content.id) return;
-                  if (mutedRef.current) player.mute?.();
-                  else player.unMute?.();
-                  player.playVideo?.();
+                  if (activeIdRef.current === content.id) {
+                    if (mutedRef.current) player.mute?.();
+                    else player.unMute?.();
+                    player.playVideo?.();
+                    return;
+                  }
+                  // Vidéo voisine : une amorce muette, puis retour au début.
+                  // Elle attend son tour, sinon elle disputerait la bande
+                  // passante à la vidéo que la personne est en train de
+                  // regarder — et la rendrait plus lente, pas plus rapide.
+                  window.setTimeout(() => {
+                    if (activeIdRef.current === content.id) return;
+                    player.mute?.();
+                    player.playVideo?.();
+                    window.setTimeout(() => {
+                      if (activeIdRef.current === content.id) return;
+                      player.pauseVideo?.();
+                      player.seekTo?.(0, true);
+                    }, PREBUFFER_MS);
+                  }, PREBUFFER_DELAY_MS);
                 }}
                 onPlayerDestroy={() => players.current.delete(content.id)}
                 onToggleLike={() => void toggleLike(content)}

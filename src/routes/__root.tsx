@@ -150,6 +150,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // évite un aller-retour DNS/TLS au moment de la première lecture.
       { rel: "preconnect", href: "https://www.youtube.com" },
       { rel: "preconnect", href: "https://i.ytimg.com" },
+      // Hôte du lecteur lui-même : sans lui, la première vidéo attend une
+      // résolution DNS et une poignée de main TLS de plus.
+      { rel: "preconnect", href: "https://s.ytimg.com" },
       { rel: "dns-prefetch", href: "https://googlevideo.com" },
     ],
   }),

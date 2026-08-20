@@ -32,7 +32,7 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
   }, [onDone]);
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-background">
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-background">
       {/* Halos de marque, repris des deux teintes du logo. */}
       <motion.div
         aria-hidden="true"

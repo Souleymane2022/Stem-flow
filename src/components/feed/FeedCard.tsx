@@ -75,6 +75,9 @@ type Props = {
 
 type Burst = { id: number; x: number; y: number };
 
+/** Amorce muette accordée à la vidéo cachée sous l'annonce. */
+const PREBUFFER_MS = 900;
+
 export function FeedCard({
   content,
   liked,
@@ -105,6 +108,12 @@ export function FeedCard({
   );
   const [splashDone, setSplashDone] = useState(false);
   const showSplash = needsSplash && !splashDone;
+  /**
+   * Lecteur prêt pendant l'annonce. Il n'est confié au fil qu'à la fin de
+   * celle-ci : sinon le fil, voyant la slide active, lancerait la vidéo
+   * derrière le voile.
+   */
+  const waitingPlayer = useRef<YouTubePlayerLike | null>(null);
   const lastTap = useRef(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
 
@@ -131,19 +140,25 @@ export function FeedCard({
       {/* Media layer */}
       {content.content_type === "video" && content.video_id ? (
         <div className="absolute inset-0">
-          {/* L'annonce ne démarre que sur la slide affichée : montée en avance,
-              elle se serait déroulée hors écran et personne ne l'aurait vue. */}
-          {mountPlayer && showSplash && active ? (
-            <BrandSplash
-              onDone={() => {
-                markBrandBreakShown(content.id);
-                setSplashDone(true);
-              }}
-            />
-          ) : mountPlayer && !showSplash ? (
+          {/* Le lecteur est monté même sous l'annonce : il remplit sa mémoire
+              tampon pendant les cinq secondes, et la vidéo démarre sans attente
+              quand le voile se lève. */}
+          {mountPlayer ? (
             <VideoPlayer
               videoId={content.video_id}
-              onPlayerReady={onPlayerReady}
+              onPlayerReady={(player) => {
+                if (showSplash) {
+                  player.mute();
+                  player.playVideo();
+                  window.setTimeout(() => {
+                    player.pauseVideo();
+                    player.seekTo?.(0, true);
+                  }, PREBUFFER_MS);
+                  waitingPlayer.current = player;
+                  return;
+                }
+                onPlayerReady?.(player);
+              }}
               onPlayerDestroy={onPlayerDestroy}
             />
           ) : (
@@ -212,6 +227,24 @@ export function FeedCard({
           </div>
         </div>
       )}
+
+      {/* L'annonce ne démarre que sur la slide affichée : montée en avance,
+          elle se serait déroulée hors écran et personne ne l'aurait vue. */}
+      {content.content_type === "video" &&
+        content.video_id &&
+        mountPlayer &&
+        showSplash &&
+        active && (
+          <BrandSplash
+            onDone={() => {
+              markBrandBreakShown(content.id);
+              setSplashDone(true);
+              const player = waitingPlayer.current;
+              waitingPlayer.current = null;
+              if (player) onPlayerReady?.(player);
+            }}
+          />
+        )}
 
       {/* Heart bursts */}
       <AnimatePresence>
