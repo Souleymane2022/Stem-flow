@@ -91,7 +91,14 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
       .eq("youtube_playlist_id", data.playlistId)
       .maybeSingle();
     if (existing)
-      return { ok: true, courseId: existing.id, imported: 0, published: 0, alreadyExisted: true };
+      return {
+        ok: true,
+        courseId: existing.id,
+        imported: 0,
+        published: 0,
+        publishError: null,
+        alreadyExisted: true,
+      };
 
     // Titre et description de la playlist
     const meta = await fetchJson(
@@ -191,40 +198,32 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
     }
 
     // Quelques leçons rejoignent le fil, sinon la playlist reste invisible pour
-    // qui ne va jamais dans l'onglet Cours. La ligne du fil garde le lien vers
-    // la leçon : le visionnage compte alors dans la progression du cours.
+    // qui ne va jamais dans l'onglet Cours. La base fait le travail : elle
+    // adopte la vidéo si elle est déjà dans le fil plutôt que de l'y ajouter
+    // une seconde fois, et pose le lien qui fera compter le visionnage dans la
+    // progression du cours.
     let published = 0;
+    // Remontée jusqu'à l'écran : un échec de publication silencieux laissait
+    // croire à un import réussi et à un fil vide sans raison visible.
+    let publishError: string | null = null;
     if (data.feedCount > 0 && inserted?.length) {
-      const { data: author } = await supabaseAdmin
-        .from("profiles")
-        .select("username")
-        .eq("id", context.userId)
-        .maybeSingle();
-
       const chosen = [...inserted]
         .sort((a, b) => a.sort_order - b.sort_order)
         .slice(0, data.feedCount);
 
-      const { error: feedError } = await supabaseAdmin.from("contents").insert(
-        chosen.map((lesson) => ({
-          content_type: "video",
-          title: lesson.title,
-          description: (lesson.description ?? "").slice(0, 500) || null,
-          video_url: `https://www.youtube.com/watch?v=${lesson.video_id}`,
-          video_id: lesson.video_id,
-          category: data.category,
-          difficulty: data.difficulty,
-          xp_reward: 15,
-          author_id: context.userId,
-          author_name: author?.username ?? "stemflow",
-          source_course_id: course.id,
-          source_lesson_id: lesson.id,
-        })),
-      );
-      // Un échec ici ne doit pas perdre le cours : il est importé, seule la
-      // mise en avant a manqué, et chaque leçon reste publiable à la main.
-      if (feedError) console.error("[cours] publication dans le fil impossible", feedError);
-      else published = chosen.length;
+      for (const lesson of chosen) {
+        const { error } = await supabaseAdmin.rpc("link_lesson_to_feed", {
+          p_lesson_id: lesson.id,
+          p_author: context.userId,
+        });
+        if (error) {
+          // La cause se répéterait à l'identique sur les suivantes.
+          console.error("[cours] publication dans le fil impossible", error);
+          publishError = error.message;
+          break;
+        }
+        published += 1;
+      }
     }
 
     return {
@@ -232,6 +231,7 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
       courseId: course.id,
       imported: lessons.length,
       published,
+      publishError,
       alreadyExisted: false,
     };
   });

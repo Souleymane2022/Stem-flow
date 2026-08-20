@@ -74,6 +74,8 @@ function CoursePage() {
   /** Leçons déjà visibles dans le fil. */
   const [inFeed, setInFeed] = useState<Set<string>>(new Set());
   const [switching, setSwitching] = useState<string | null>(null);
+  const [bulkCount, setBulkCount] = useState(3);
+  const [bulking, setBulking] = useState(false);
 
   const player = useRef<YouTubePlayerLike | null>(null);
   const lastTime = useRef(0);
@@ -226,6 +228,43 @@ function CoursePage() {
     },
     [t],
   );
+
+  /**
+   * Publie d'un coup les premières leçons pas encore dans le fil.
+   *
+   * Le choix fait à l'import ne vaut que pour l'import : les cours créés avant
+   * cette fonctionnalité, et ceux importés sans mise en avant, restaient
+   * invisibles depuis le fil sans moyen de rattrapage autre qu'un clic par
+   * leçon.
+   */
+  const publishBatch = useCallback(async () => {
+    const targets = lessons.filter((l) => !inFeed.has(l.id)).slice(0, bulkCount);
+    if (targets.length === 0) {
+      toast.success(t("courses.feed.allPublished"));
+      return;
+    }
+    setBulking(true);
+    let done = 0;
+    let failure: string | null = null;
+    for (const lesson of targets) {
+      const { error } = await supabase.rpc("set_lesson_in_feed", {
+        p_lesson_id: lesson.id,
+        p_in_feed: true,
+      });
+      if (error) {
+        // La cause se répéterait à l'identique sur les suivantes : inutile
+        // d'enchaîner des appels voués au même refus.
+        console.error("[cours] publication groupée interrompue", error);
+        failure = error.message;
+        break;
+      }
+      done += 1;
+      setInFeed((prev) => new Set(prev).add(lesson.id));
+    }
+    setBulking(false);
+    if (failure) toast.error(t("courses.feed.failed", { message: failure }));
+    else toast.success(t("courses.feed.bulkDone", { count: done }));
+  }, [lessons, inFeed, bulkCount, t]);
 
   const push = useCallback(
     async (lessonId: string, delta: number, position: number, duration: number) => {
@@ -463,9 +502,34 @@ function CoursePage() {
         )}
 
         {canPublish && (
-          <p className="mt-8 rounded-xl border border-border bg-surface-2 px-3 py-2 text-[11px] text-muted-foreground">
-            {t("courses.feed.hint")}
-          </p>
+          <div className="mt-8 rounded-xl border border-border bg-surface-2 px-3 py-3">
+            <p className="text-[11px] text-muted-foreground">{t("courses.feed.hint")}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <select
+                value={bulkCount}
+                onChange={(e) => setBulkCount(Number(e.target.value))}
+                className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs outline-none focus:border-primary"
+              >
+                {[3, 5, 10].map((n) => (
+                  <option key={n} value={n}>
+                    {t("courses.import.feedSome", { count: n })}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void publishBatch()}
+                disabled={bulking}
+                className="flex items-center gap-1.5 rounded-full bg-gradient-brand px-3 py-1.5 text-xs font-black text-background disabled:opacity-60"
+              >
+                <Radio className="h-3.5 w-3.5" />
+                {bulking ? t("courses.feed.bulkBusy") : t("courses.feed.bulk")}
+              </button>
+              <span className="text-[11px] text-muted-foreground">
+                {t("courses.feed.count", { count: inFeed.size })}
+              </span>
+            </div>
+          </div>
         )}
 
         <ol className="mt-3 space-y-2">

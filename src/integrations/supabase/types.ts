@@ -540,6 +540,7 @@ export type Database = {
           created_at: string;
           description: string | null;
           difficulty: string;
+          from_lesson: boolean;
           id: string;
           image_url: string | null;
           likes_count: number;
@@ -565,6 +566,7 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           difficulty?: string;
+          from_lesson?: boolean;
           id?: string;
           image_url?: string | null;
           likes_count?: number;
@@ -590,6 +592,7 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           difficulty?: string;
+          from_lesson?: boolean;
           id?: string;
           image_url?: string | null;
           likes_count?: number;
@@ -1125,6 +1128,19 @@ export type Database = {
           p_content_id: string;
         };
         Returns: boolean;
+      };
+      link_lesson_to_feed: {
+        Args: {
+          p_lesson_id: string;
+          p_author: string;
+        };
+        Returns: string;
+      };
+      unlink_lesson_from_feed: {
+        Args: {
+          p_lesson_id: string;
+        };
+        Returns: undefined;
       };
       is_app_admin: {
         Args: Record<string, never>;

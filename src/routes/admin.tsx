@@ -99,14 +99,20 @@ function AdminPage() {
       const result = await runImport({
         data: { playlistUrl: url, category, difficulty, feedCount },
       });
-      toast.success(
-        result.alreadyExisted
-          ? t("courses.import.exists")
-          : `${t("courses.import.done", { count: result.imported })} · ${t(
-              "courses.import.published",
-              { count: result.published },
-            )}`,
-      );
+      if (result.publishError) {
+        // L'import a réussi, la mise en avant non : le dire, sinon on cherche
+        // la cause dans le fil au lieu de la base.
+        toast.error(t("courses.feed.failed", { message: result.publishError }));
+      } else {
+        toast.success(
+          result.alreadyExisted
+            ? t("courses.import.exists")
+            : `${t("courses.import.done", { count: result.imported })} · ${t(
+                "courses.import.published",
+                { count: result.published },
+              )}`,
+        );
+      }
       setUrl("");
       void navigate({ to: "/courses/$id", params: { id: result.courseId } });
     } catch (error) {
