@@ -161,6 +161,11 @@ UPDATE public.contents ct
    SET source_course_id = p.course_id,
        source_lesson_id = p.lesson_id
   FROM unique_pair p
- WHERE ct.id = p.content_id;
+ WHERE ct.id = p.content_id
+   -- Une leçon déjà rattachée à une autre ligne ne doit pas l'être deux fois :
+   -- l'index unique le refuserait, et le fichier doit rester rejouable.
+   AND NOT EXISTS (
+     SELECT 1 FROM public.contents x WHERE x.source_lesson_id = p.lesson_id
+   );
 
 NOTIFY pgrst, 'reload schema';
