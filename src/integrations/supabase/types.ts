@@ -1185,6 +1185,19 @@ export type Database = {
         };
         Returns: undefined;
       };
+      delete_course: {
+        Args: {
+          p_course_id: string;
+        };
+        Returns: Json;
+      };
+      set_course_published: {
+        Args: {
+          p_course_id: string;
+          p_published: boolean;
+        };
+        Returns: boolean;
+      };
       is_app_admin: {
         Args: Record<string, never>;
         Returns: boolean;

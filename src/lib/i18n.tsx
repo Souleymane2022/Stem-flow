@@ -207,6 +207,21 @@ const fr = {
   "admin.delete.missing": "Cette vidéo avait déjà été supprimée.",
   "admin.delete.failed": "Suppression impossible : {message}",
   "admin.delete.empty": "Aucune vidéo dans le fil pour l'instant.",
+  "admin.courses.title": "Playlists importées",
+  "admin.courses.hint":
+    "Retirer masque le cours sans rien perdre. Supprimer efface le cours et ses leçons ; les vidéos déjà dans le fil y restent.",
+  "admin.courses.lessons": "{count} leçons",
+  "admin.courses.hidden": "Retirée du catalogue",
+  "admin.courses.publish": "Remettre au catalogue",
+  "admin.courses.unpublish": "Retirer du catalogue",
+  "admin.courses.delete": "Supprimer",
+  "admin.courses.confirm": "Supprimer « {title} » et ses leçons ? C'est définitif.",
+  "admin.courses.deleted":
+    "Cours supprimé · {lessons} leçons · {detached} vidéos conservées dans le fil",
+  "admin.courses.blocked":
+    "Suppression refusée : {count} certificat(s) délivré(s) pour ce cours. Retire-le du catalogue à la place.",
+  "admin.courses.missing": "Ce cours a déjà été supprimé.",
+  "admin.courses.empty": "Aucun cours pour l'instant.",
   "db.updateNeeded":
     "La mise à jour de la base n'a pas encore été appliquée. Exécute MISE_A_JOUR.sql dans le SQL Editor de Supabase.",
   "trending.title": "Les plus regardées",
@@ -485,6 +500,21 @@ const en: Dictionary = {
   "admin.delete.missing": "This video was already deleted.",
   "admin.delete.failed": "Could not delete: {message}",
   "admin.delete.empty": "No video in the feed yet.",
+  "admin.courses.title": "Imported playlists",
+  "admin.courses.hint":
+    "Hiding removes the course from the catalogue without losing anything. Deleting erases the course and its lessons; videos already in the feed stay there.",
+  "admin.courses.lessons": "{count} lessons",
+  "admin.courses.hidden": "Hidden from the catalogue",
+  "admin.courses.publish": "Back to the catalogue",
+  "admin.courses.unpublish": "Hide from the catalogue",
+  "admin.courses.delete": "Delete",
+  "admin.courses.confirm": "Delete “{title}” and its lessons? This cannot be undone.",
+  "admin.courses.deleted":
+    "Course deleted · {lessons} lessons · {detached} videos kept in the feed",
+  "admin.courses.blocked":
+    "Deletion refused: {count} certificate(s) issued for this course. Hide it from the catalogue instead.",
+  "admin.courses.missing": "This course was already deleted.",
+  "admin.courses.empty": "No course yet.",
   "db.updateNeeded":
     "The database update has not been applied yet. Run MISE_A_JOUR.sql in the Supabase SQL Editor.",
   "trending.title": "Most watched",
@@ -759,6 +789,20 @@ const ar: Dictionary = {
   "admin.delete.missing": "سبق حذف هذا الفيديو.",
   "admin.delete.failed": "تعذّر الحذف: {message}",
   "admin.delete.empty": "لا يوجد فيديو في التدفّق بعد.",
+  "admin.courses.title": "قوائم التشغيل المستوردة",
+  "admin.courses.hint":
+    "الإخفاء يزيل الدورة من الكتالوج دون فقدان شيء. الحذف يمحو الدورة ودروسها؛ الفيديوهات الموجودة في التدفّق تبقى.",
+  "admin.courses.lessons": "{count} دروس",
+  "admin.courses.hidden": "مخفيّة من الكتالوج",
+  "admin.courses.publish": "إعادة إلى الكتالوج",
+  "admin.courses.unpublish": "إخفاء من الكتالوج",
+  "admin.courses.delete": "حذف",
+  "admin.courses.confirm": "حذف «{title}» ودروسها؟ لا يمكن التراجع.",
+  "admin.courses.deleted": "حُذفت الدورة · {lessons} درسًا · {detached} فيديو بقي في التدفّق",
+  "admin.courses.blocked":
+    "رُفض الحذف: صدرت {count} شهادة لهذه الدورة. أخفِها من الكتالوج بدلاً من ذلك.",
+  "admin.courses.missing": "سبق حذف هذه الدورة.",
+  "admin.courses.empty": "لا توجد دورات بعد.",
   "db.updateNeeded":
     "لم يُطبَّق تحديث قاعدة البيانات بعد. نفّذ ملف MISE_A_JOUR.sql في محرّر SQL في Supabase.",
   "trending.title": "الأكثر مشاهدة",
