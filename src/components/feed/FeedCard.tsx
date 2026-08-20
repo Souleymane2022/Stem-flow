@@ -18,6 +18,7 @@ import { categoryMeta, difficultyLabel } from "@/lib/categories";
 import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { youtubeThumbnail } from "@/utils/youtube";
 import { BrandSplash } from "@/components/brand/BrandSplash";
+import { markBrandBreakShown, shouldShowBrandBreak } from "@/lib/brandBreak";
 import { useI18n } from "@/lib/i18n";
 
 export type ContentRow = {
@@ -55,6 +56,8 @@ type Props = {
    * Les autres n'affichent qu'une vignette : une iframe par contenu saturait le fil.
    */
   mountPlayer?: boolean;
+  /** Slide occupant l'écran. L'ouverture de marque n'a de sens que là. */
+  active?: boolean;
   onToggleMute?: () => void;
   onPlayerReady?: (player: YouTubePlayerLike) => void;
   onPlayerDestroy?: () => void;
@@ -69,13 +72,6 @@ type Props = {
 
 type Burst = { id: number; x: number; y: number };
 
-/**
- * Vidéos déjà précédées de l'ouverture de marque pendant cette visite. Le fil
- * démonte les lecteurs éloignés : sans cette mémoire hors composant, revenir
- * en arrière rejouerait l'annonce à chaque passage.
- */
-const advertised = new Set<string>();
-
 export function FeedCard({
   content,
   liked,
@@ -83,6 +79,7 @@ export function FeedCard({
   questionCount,
   muted = true,
   mountPlayer = false,
+  active = false,
   onToggleMute,
   onPlayerReady,
   onPlayerDestroy,
@@ -96,7 +93,14 @@ export function FeedCard({
 }: Props) {
   const { t } = useI18n();
   const meta = categoryMeta(content.category);
-  const [splashDone, setSplashDone] = useState(() => advertised.has(content.id));
+  // Décidé au montage, comme la lecture : le fil monte la slide suivante à
+  // l'avance, et attendre qu'elle soit à l'écran ferait apparaître l'annonce
+  // après le début de la vidéo.
+  const [needsSplash] = useState(() =>
+    content.content_type === "video" ? shouldShowBrandBreak(content.id) : false,
+  );
+  const [splashDone, setSplashDone] = useState(false);
+  const showSplash = needsSplash && !splashDone;
   const lastTap = useRef(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
 
@@ -123,14 +127,16 @@ export function FeedCard({
       {/* Media layer */}
       {content.content_type === "video" && content.video_id ? (
         <div className="absolute inset-0">
-          {mountPlayer && !splashDone ? (
+          {/* L'annonce ne démarre que sur la slide affichée : montée en avance,
+              elle se serait déroulée hors écran et personne ne l'aurait vue. */}
+          {mountPlayer && showSplash && active ? (
             <BrandSplash
               onDone={() => {
-                advertised.add(content.id);
+                markBrandBreakShown(content.id);
                 setSplashDone(true);
               }}
             />
-          ) : mountPlayer ? (
+          ) : mountPlayer && !showSplash ? (
             <VideoPlayer
               videoId={content.video_id}
               onPlayerReady={onPlayerReady}

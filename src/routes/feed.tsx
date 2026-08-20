@@ -387,6 +387,7 @@ function FeedPage() {
                 questionCount={questionCounts[content.id] ?? 0}
                 muted={muted}
                 mountPlayer={Math.abs(index - active) <= PLAYER_WINDOW}
+                active={index === active}
                 onToggleMute={toggleMute}
                 onPlayerReady={(player) => {
                   players.current.set(content.id, player);
