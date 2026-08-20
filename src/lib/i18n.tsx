@@ -213,6 +213,13 @@ const fr = {
   "trending.subtitle": "Ce que la communauté regarde le plus en ce moment.",
   "trending.openHint": "Glisse vers la droite pour voir qui a publié.",
 
+  "install.title": "Installer STEM Flow",
+  "install.body":
+    "Une icône sur ton écran d'accueil, l'application en plein écran, et un écran de secours quand le réseau lâche.",
+  "install.action": "Installer",
+  "install.ios.share": "Appuie sur Partager,",
+  "install.ios.add": "puis « Sur l'écran d'accueil ».",
+
   "certificate.earned": "Certificat obtenu 🎓",
   "certificate.view": "Voir mon certificat",
   "certificate.title": "Certificat de réussite",
@@ -468,6 +475,13 @@ const en: Dictionary = {
   "trending.subtitle": "What the community is watching right now.",
   "trending.openHint": "Swipe right to see who posted it.",
 
+  "install.title": "Install STEM Flow",
+  "install.body":
+    "An icon on your home screen, the app full screen, and a fallback page when the network drops.",
+  "install.action": "Install",
+  "install.ios.share": "Tap Share,",
+  "install.ios.add": "then \u00ab Add to Home Screen \u00bb.",
+
   "certificate.earned": "Certificate earned 🎓",
   "certificate.view": "View my certificate",
   "certificate.title": "Certificate of completion",
@@ -718,6 +732,13 @@ const ar: Dictionary = {
   "trending.title": "الأكثر مشاهدة",
   "trending.subtitle": "ما يشاهده المجتمع أكثر من غيره الآن.",
   "trending.openHint": "اسحب يمينًا لمعرفة من نشره.",
+
+  "install.title": "تثبيت STEM Flow",
+  "install.body":
+    "أيقونة على شاشتك الرئيسية، وتطبيق بملء الشاشة، وصفحة احتياطية عند انقطاع الشبكة.",
+  "install.action": "تثبيت",
+  "install.ios.share": "اضغط على مشاركة،",
+  "install.ios.add": "ثم «إضافة إلى الشاشة الرئيسية».",
 
   "certificate.earned": "تم الحصول على الشهادة 🎓",
   "certificate.view": "عرض شهادتي",

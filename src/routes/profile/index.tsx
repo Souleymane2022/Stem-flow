@@ -7,6 +7,7 @@ import { LOCALES, useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
 import { AvatarPicker } from "@/components/profile/AvatarPicker";
 import { ProfileActivity } from "@/components/profile/ProfileActivity";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import { getLevel, levelBgClass, levelProgress } from "@/lib/xp";
 import { categoryMeta } from "@/lib/categories";
 
@@ -186,6 +187,8 @@ function ProfilePage() {
         </section>
 
         <ProfileActivity userId={profile.id} own interests={profile.interests} />
+
+        <InstallApp />
 
         <Section title={t("profile.missions")} icon={<Settings className="h-4 w-4" />}>
           {missions.length === 0 && (

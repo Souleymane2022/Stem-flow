@@ -134,6 +134,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image:height", content: "630" },
       { property: "og:image:alt", content: "STEMFLOW" },
       { name: "twitter:image", content: `${SITE_URL}/og-card.jpg` },
+      // Couleur de la barre système quand l'application est installée.
+      { name: "theme-color", content: "#050a0e" },
+      // iOS ignore le manifeste pour ces trois réglages.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "STEM Flow" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -146,6 +152,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "icon", href: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      // Rend l'application installable : icône sur l'écran d'accueil, ouverture
+      // en plein écran sans barre d'adresse.
+      { rel: "manifest", href: "/manifest.webmanifest" },
       // Le fil monte des lecteurs YouTube : ouvrir les connexions au plus tôt
       // évite un aller-retour DNS/TLS au moment de la première lecture.
       { rel: "preconnect", href: "https://www.youtube.com" },
@@ -178,6 +187,22 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Enregistré après le rendu : le service worker rend l'application
+  // installable et lui donne un écran hors ligne. Il n'intercepte rien de ce
+  // qui va vers Supabase.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    const register = () => {
+      navigator.serviceWorker.register("/sw.js").catch((error) => {
+        console.error("[pwa] service worker non enregistré", error);
+      });
+    };
+    // Après le chargement : l'enregistrement dispute sinon la bande passante
+    // aux premières vidéos.
+    if (document.readyState === "complete") register();
+    else window.addEventListener("load", register, { once: true });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

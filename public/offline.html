@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hors ligne — STEM Flow</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0; min-height: 100dvh; display: grid; place-content: center; gap: 1rem;
+        padding: 2rem; text-align: center; background: #050a0e; color: #e8eef2;
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      img { width: 200px; margin: 0 auto; }
+      h1 { font-size: 1.25rem; font-weight: 800; margin: 0; }
+      p { margin: 0; color: #93a4b1; font-size: .9rem; max-width: 28rem; }
+      button {
+        margin-top: .5rem; padding: .7rem 1.4rem; border: 0; border-radius: 999px;
+        background: linear-gradient(90deg, #8cc63f, #0fa3e0); color: #050a0e;
+        font-weight: 800; font-size: .9rem; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="/logo-dark.png" alt="STEM Flow" />
+    <h1>Pas de connexion</h1>
+    <p>
+      Les vidéos viennent de YouTube : elles ont besoin du réseau. Dès qu'il
+      revient, reprends là où tu en étais.
+    </p>
+    <button onclick="location.reload()">Réessayer</button>
+  </body>
+</html>
