@@ -187,11 +187,13 @@ function ProfilePage() {
           </div>
         </section>
 
-        <ProfileActivity userId={profile.id} own interests={profile.interests} />
-
+        {/* Placés avant l'historique : celui-ci fait plusieurs écrans sur
+            téléphone, et l'installation y devenait introuvable. */}
         <InstallApp />
 
         <PushToggle />
+
+        <ProfileActivity userId={profile.id} own interests={profile.interests} />
 
         <Section title={t("profile.missions")} icon={<Settings className="h-4 w-4" />}>
           {missions.length === 0 && (

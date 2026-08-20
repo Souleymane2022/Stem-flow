@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Download, Share, SquarePlus } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
@@ -32,6 +33,35 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+/**
+ * Variante « lien » pour la barre latérale : l'installation ne se trouvait que
+ * dans la page Profil, sous un historique qui fait plusieurs écrans.
+ */
+export function InstallLink({ className = "" }: { className?: string }) {
+  const { t } = useI18n();
+  const [installed, setInstalled] = useState(true);
+
+  useEffect(() => {
+    setInstalled(isStandalone());
+    const onInstalled = () => setInstalled(true);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => window.removeEventListener("appinstalled", onInstalled);
+  }, []);
+
+  if (installed) return null;
+
+  return (
+    <Link
+      to="/profile"
+      hash="installer"
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground ${className}`}
+    >
+      <Download className="h-5 w-5 shrink-0" />
+      <span className="truncate">{t("install.title")}</span>
+    </Link>
+  );
+}
+
 export function InstallApp() {
   const { t } = useI18n();
   const [prompt, setPrompt] = useState<InstallEvent | null>(null);
@@ -61,16 +91,23 @@ export function InstallApp() {
     };
   }, []);
 
+  // Rien à proposer à quelqu'un qui l'a déjà installée.
   if (installed) return null;
-  if (!prompt && !ios) return null;
 
   return (
-    <section className="mt-4 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+    <section
+      id="installer"
+      className="mt-4 scroll-mt-20 rounded-2xl border border-primary/30 bg-primary/5 p-4"
+    >
       <h2 className="flex items-center gap-2 text-base font-bold">
         <Download className="h-4 w-4 text-primary" /> {t("install.title")}
       </h2>
       <p className="mt-1 text-xs text-muted-foreground">{t("install.body")}</p>
 
+      {/* Trois cas. Le bouton quand le navigateur le permet, la marche à
+          suivre sur iOS qui n'a pas d'autre chemin, et sinon l'indication du
+          navigateur à utiliser — plutôt qu'un bloc qui disparaît sans rien
+          dire, ce qui laisse chercher une option qui n'existe pas ici. */}
       {prompt ? (
         <button
           type="button"
@@ -82,12 +119,16 @@ export function InstallApp() {
         >
           {t("install.action")}
         </button>
-      ) : (
+      ) : ios ? (
         <p className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-xs">
           <Share className="h-4 w-4 shrink-0 text-primary" />
           {t("install.ios.share")}
           <SquarePlus className="h-4 w-4 shrink-0 text-primary" />
           {t("install.ios.add")}
+        </p>
+      ) : (
+        <p className="mt-3 rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-xs text-muted-foreground">
+          {t("install.unsupported")}
         </p>
       )}
     </section>

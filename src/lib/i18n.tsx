@@ -219,6 +219,8 @@ const fr = {
   "install.action": "Installer",
   "install.ios.share": "Appuie sur Partager,",
   "install.ios.add": "puis « Sur l'écran d'accueil ».",
+  "install.unsupported":
+    "Ce navigateur ne propose pas l'installation. Ouvre le site dans Chrome sur Android, ou dans Safari sur iPhone.",
 
   "push.title": "Notifications",
   "push.body": "Être prévenu d'un défi ou d'une invitation, même quand l'application est fermée.",
@@ -495,6 +497,8 @@ const en: Dictionary = {
   "install.action": "Install",
   "install.ios.share": "Tap Share,",
   "install.ios.add": "then \u00ab Add to Home Screen \u00bb.",
+  "install.unsupported":
+    "This browser does not offer installation. Open the site in Chrome on Android, or Safari on iPhone.",
 
   "push.title": "Notifications",
   "push.body": "Get told about a challenge or an invitation, even when the app is closed.",
@@ -767,6 +771,8 @@ const ar: Dictionary = {
   "install.action": "تثبيت",
   "install.ios.share": "اضغط على مشاركة،",
   "install.ios.add": "ثم «إضافة إلى الشاشة الرئيسية».",
+  "install.unsupported":
+    "هذا المتصفّح لا يوفّر التثبيت. افتح الموقع في Chrome على أندرويد أو Safari على آيفون.",
 
   "push.title": "الإشعارات",
   "push.body": "تنبيه بالتحدّيات والدعوات، حتى والتطبيق مغلق.",

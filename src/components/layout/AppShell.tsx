@@ -18,6 +18,7 @@ import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { isAdminEmail } from "@/lib/admins";
+import { InstallLink } from "@/components/pwa/InstallApp";
 import { useI18n } from "@/lib/i18n";
 import { getLevel, levelProgress } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,6 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="shrink-0 space-y-3 border-t border-border px-4 py-4">
+          <InstallLink />
           <XpBar />
           {/* Toujours disponible : la déconnexion ne doit pas dépendre du
               chargement du profil, sinon un profil illisible piège l'utilisateur. */}
