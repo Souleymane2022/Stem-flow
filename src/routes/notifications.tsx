@@ -4,6 +4,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { useI18n } from "@/lib/i18n";
 import { SkeletonList } from "@/components/common/Skeleton";
 
 export const Route = createFileRoute("/notifications")({
@@ -41,6 +42,7 @@ const ICONS: Record<string, string> = {
 };
 
 function NotificationsPage() {
+  const { t } = useI18n();
   const { session } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ function NotificationsPage() {
     <AppShell>
       <div className="mx-auto max-w-2xl px-4 py-6 md:px-8 md:py-10">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl">Notifications</h1>
+          <h1 className="text-2xl md:text-3xl">{t("notifications.title")}</h1>
           <button
             onClick={markAll}
             className="flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-3.5 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"
@@ -109,7 +111,7 @@ function NotificationsPage() {
           {!loading && items.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <Bell className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Rien de neuf pour l'instant.</p>
+              <p className="text-sm text-muted-foreground">{t("notifications.empty")}</p>
             </div>
           )}
           {items.map((n) => (

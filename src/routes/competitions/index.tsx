@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { SkeletonList } from "@/components/common/Skeleton";
 import { PageHeader } from "@/components/common/PageHeader";
-import { useI18n, useLabels } from "@/lib/i18n";
+import { useI18n, useLabels, type Key } from "@/lib/i18n";
 import { CATEGORIES, categoryMeta } from "@/lib/categories";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -50,31 +50,29 @@ type Competition = {
   created_at: string;
 };
 
-const DIFFICULTIES = [
-  { value: "debutant", label: "Débutant" },
-  { value: "intermediaire", label: "Intermédiaire" },
-  { value: "avance", label: "Avancé" },
+const LEVELS = ["debutant", "intermediaire", "avance"] as const;
+
+/** Exemples de notions, traduits : ils partent tels quels à l'IA. */
+const SUGGESTION_KEYS: Key[] = [
+  "competitions.suggestion.1",
+  "competitions.suggestion.2",
+  "competitions.suggestion.3",
+  "competitions.suggestion.4",
+  "competitions.suggestion.5",
+  "competitions.suggestion.6",
 ];
 
-const SUGGESTIONS = [
-  "Théorème de Pythagore",
-  "Les lois de Newton",
-  "La photosynthèse",
-  "Les bases de Python",
-  "Les capteurs d'un robot",
-  "Les fonctions affines",
-];
-
-const STATUS_LABEL: Record<string, string> = {
-  lobby: "Ouvert",
-  running: "En cours",
-  finished: "Terminé",
+/** Traduits au rendu : les dictionnaires ne sont pas lisibles hors composant. */
+const STATUS_KEY: Record<string, Key> = {
+  lobby: "competitions.status.open",
+  running: "competitions.status.live",
+  finished: "competitions.status.done",
 };
 
 function CompetitionsPage() {
   const { user, profile, loading: authLoading, refreshProfile, profileError } = useAuth();
   const { t } = useI18n();
-  const { categoryLabel } = useLabels();
+  const { categoryLabel, difficultyLabel } = useLabels();
   const navigate = useNavigate();
   const [items, setItems] = useState<Competition[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -152,12 +150,12 @@ function CompetitionsPage() {
     // `profile`. Un utilisateur connecté dont la fiche n'était pas encore
     // chargée se voyait donc demander de se connecter alors qu'il l'était.
     if (!user) {
-      toast.error("Connecte-toi pour lancer un défi");
+      toast.error(t("competitions.create.signin"));
       return;
     }
     const clean = topic.trim();
     if (clean.length < 3) {
-      toast.error("Précise la notion du défi");
+      toast.error(t("competitions.create.required"));
       return;
     }
     setCreating(true);
@@ -218,14 +216,10 @@ function CompetitionsPage() {
           title={t("nav.competitions")}
           subtitle={t("competitions.subtitle")}
         />
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choisis une notion, invite la communauté, et affronte les autres en direct.
-        </p>
-
         {/* Création */}
         <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
           <h2 className="flex items-center gap-2 text-base font-bold">
-            <Sparkles className="h-4 w-4 text-primary" /> Lancer un défi
+            <Sparkles className="h-4 w-4 text-primary" /> {t("competitions.create.heading")}
           </h2>
           {followed.length > 0 && (
             <div className="mt-3">
@@ -276,19 +270,19 @@ function CompetitionsPage() {
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="La notion : ex. « Théorème de Thalès »"
+            placeholder={t("competitions.create.placeholder")}
             className="mt-3 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
             {!sourceCourseId &&
-              SUGGESTIONS.map((s) => (
+              SUGGESTION_KEYS.map((key) => (
                 <button
-                  key={s}
+                  key={key}
                   type="button"
-                  onClick={() => setTopic(s)}
+                  onClick={() => setTopic(t(key))}
                   className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary hover:text-foreground"
                 >
-                  {s}
+                  {t(key)}
                 </button>
               ))}
           </div>
@@ -297,18 +291,22 @@ function CompetitionsPage() {
               politiques RLS, pas seulement affiché. */}
           <div className="mt-3">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Type de défi
+              {t("competitions.mode.label")}
             </p>
             <div className="mt-1.5 grid grid-cols-3 gap-1.5">
               {(
                 [
                   {
                     value: "open",
-                    label: "🚪 Salon ouvert",
-                    hint: "Tout le monde peut rejoindre.",
+                    label: `🚪 ${t("competitions.mode.open")}`,
+                    hint: t("competitions.mode.open.hint"),
                   },
-                  { value: "duel", label: "⚔️ Duel", hint: "Sur invitation uniquement." },
-                  { value: "solo", label: "🎯 Solo", hint: "Tu t'entraînes seul." },
+                  { value: "duel", label: "⚔️ Duel", hint: t("competitions.private.badge") },
+                  {
+                    value: "solo",
+                    label: `🎯 ${t("competitions.mode.solo")}`,
+                    hint: t("competitions.mode.solo.hint"),
+                  },
                 ] as const
               ).map((m) => (
                 <button
@@ -327,10 +325,10 @@ function CompetitionsPage() {
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {mode === "open"
-                ? "Tout le monde peut rejoindre le salon."
+                ? t("competitions.mode.open.hint")
                 : mode === "duel"
-                  ? "Seules les personnes que tu invites peuvent participer."
-                  : "Tu t'entraînes seul sur cette notion."}
+                  ? t("competitions.private.hint")
+                  : t("competitions.mode.solo.hint")}
             </p>
           </div>
 
@@ -351,9 +349,9 @@ function CompetitionsPage() {
               onChange={(e) => setDifficulty(e.target.value)}
               className="rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
             >
-              {DIFFICULTIES.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
+              {LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {difficultyLabel(level)}
                 </option>
               ))}
             </select>
@@ -376,20 +374,19 @@ function CompetitionsPage() {
             disabled={creating || authLoading}
             className="mt-3 w-full rounded-xl bg-gradient-brand py-2.5 text-sm font-bold text-background disabled:opacity-60"
           >
-            {creating ? "Création…" : "Créer le défi"}
+            {creating ? t("competitions.create.busy") : t("competitions.create.submit")}
           </button>
           {!authLoading && !user && (
             <p className="mt-2 text-center text-xs text-muted-foreground">
               <Link to="/auth" className="text-primary">
-                Connecte-toi
-              </Link>{" "}
-              pour créer ou rejoindre un défi.
+                {t("competitions.create.signin")}
+              </Link>
             </p>
           )}
         </div>
 
         {/* Liste */}
-        <h2 className="mt-8 text-base font-bold">Défis de la communauté</h2>
+        <h2 className="mt-8 text-base font-bold">{t("competitions.list.title")}</h2>
         {loading && (
           <div className="mt-3">
             <SkeletonList rows={4} />
@@ -418,7 +415,7 @@ function CompetitionsPage() {
                     {meta.emoji} {c.category}
                   </span>
                   <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                    {STATUS_LABEL[c.status] ?? c.status}
+                    {STATUS_KEY[c.status] ? t(STATUS_KEY[c.status]!) : c.status}
                   </span>
                 </div>
                 <p className="mt-2 line-clamp-2 font-bold">{c.topic}</p>

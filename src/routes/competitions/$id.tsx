@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyUser } from "@/lib/push.functions";
 import { AppShell } from "@/components/layout/AppShell";
+import { useI18n } from "@/lib/i18n";
 import { categoryMeta } from "@/lib/categories";
 import { useAuth } from "@/hooks/useAuth";
 import { generateCompetitionQuestions } from "@/lib/competitions.functions";
@@ -69,6 +70,7 @@ type Participant = {
 
 function CompetitionRoom() {
   const { id } = Route.useParams();
+  const { t } = useI18n();
   const { user, profile, refreshProfile, profileError, awardXp } = useAuth();
   const navigate = useNavigate();
   const pushNotify = useServerFn(notifyUser);
@@ -179,7 +181,7 @@ function CompetitionRoom() {
       toast.error(`Invitation impossible : ${error.message}`);
       return;
     }
-    toast.success("Invitation envoyée");
+    toast.success(t("competitions.detail.inviteSent"));
     // L'invité est prévenu sur son téléphone, sans quoi l'invitation attend
     // qu'il pense à ouvrir l'application.
     void pushNotify({
@@ -191,7 +193,7 @@ function CompetitionRoom() {
     // Même écueil que sur la liste : le message ne parlait que de connexion
     // alors que la garde exigeait aussi la fiche de profil.
     if (!user) {
-      toast.error("Connecte-toi pour rejoindre le défi");
+      toast.error(t("competitions.detail.signin"));
       return;
     }
     // user_id référence profiles(id) : la fiche doit exister en base.
@@ -199,8 +201,8 @@ function CompetitionRoom() {
     if (!me) {
       toast.error(
         profileError
-          ? `Profil indisponible — ${profileError}`
-          : "Ton profil n'a pas pu être chargé. Réessaie dans un instant.",
+          ? t("profile.unavailableWhy", { message: profileError })
+          : t("profile.unavailable"),
       );
       return;
     }
@@ -227,9 +229,10 @@ function CompetitionRoom() {
         .eq("id", comp.id);
       await loadQuestions();
       await loadAll();
-      toast.success("Le défi est lancé !");
+      toast.success(t("competitions.detail.started"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Génération impossible";
+      const message =
+        error instanceof Error ? error.message : t("competitions.detail.generationFailed");
       console.error("[competition] génération impossible", error);
       // « Invalid API key » vient de Supabase, pas du fournisseur d'IA : le
       // middleware des server functions lit SUPABASE_PUBLISHABLE_KEY sans
@@ -247,7 +250,7 @@ function CompetitionRoom() {
   const beginPlay = async () => {
     const list = questions.length ? questions : await loadQuestions();
     if (!list.length) {
-      toast.error("Questions indisponibles");
+      toast.error(t("competitions.detail.unavailable"));
       return;
     }
     setIndex(0);
@@ -329,7 +332,7 @@ function CompetitionRoom() {
   if (loading) {
     return (
       <AppShell>
-        <div className="p-8 text-sm text-muted-foreground">Chargement du défi…</div>
+        <div className="p-8 text-sm text-muted-foreground">{t("competitions.detail.loading")}</div>
       </AppShell>
     );
   }
@@ -338,7 +341,7 @@ function CompetitionRoom() {
     return (
       <AppShell>
         <div className="p-8">
-          <p className="text-sm text-muted-foreground">Ce défi n'existe plus.</p>
+          <p className="text-sm text-muted-foreground">{t("competitions.detail.missing")}</p>
           <Link to="/competitions" className="mt-3 inline-block text-sm text-primary">
             Retour aux compétitions
           </Link>
@@ -445,7 +448,9 @@ function CompetitionRoom() {
                     onClick={() => void nextQuestion()}
                     className="rounded-xl bg-gradient-brand px-5 py-2.5 text-sm font-bold text-background"
                   >
-                    {index + 1 < questions.length ? "Question suivante" : "Terminer"}
+                    {index + 1 < questions.length
+                      ? t("competitions.detail.next")
+                      : t("competitions.detail.finish")}
                   </button>
                 </div>
               </motion.div>
@@ -468,7 +473,9 @@ function CompetitionRoom() {
                     Rejoindre le défi
                   </button>
                 ) : (
-                  <p className="mt-3 text-sm font-semibold text-primary">Tu es inscrit ✅</p>
+                  <p className="mt-3 text-sm font-semibold text-primary">
+                    {t("competitions.detail.registered")}
+                  </p>
                 )}
                 {isHost && (
                   <button
@@ -482,7 +489,7 @@ function CompetitionRoom() {
                     ) : (
                       <Swords className="h-4 w-4" />
                     )}
-                    {starting ? "Préparation des questions…" : "Lancer la compétition"}
+                    {starting ? t("competitions.detail.preparing") : t("competitions.detail.start")}
                   </button>
                 )}
               </>
@@ -572,7 +579,9 @@ function CompetitionRoom() {
         </h2>
         <div className="mt-3 space-y-2">
           {ranking.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucun participant pour l'instant.</p>
+            <p className="text-sm text-muted-foreground">
+              {t("competitions.detail.noParticipants")}
+            </p>
           )}
           {ranking.map((p, i) => (
             <div

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { useI18n } from "@/lib/i18n";
 import { categoryMeta } from "@/lib/categories";
 
 export const Route = createFileRoute("/rooms/$id")({
@@ -38,6 +39,7 @@ type Post = {
 };
 
 function RoomPage() {
+  const { t } = useI18n();
   const { id } = Route.useParams();
   const { session, profile } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
@@ -109,7 +111,7 @@ function RoomPage() {
     } else {
       await supabase.from("room_members").insert({ room_id: id, user_id: session.user.id });
       setJoined(true);
-      toast.success("Bienvenue dans le salon !");
+      toast.success(t("rooms.welcome"));
     }
   };
 
@@ -120,7 +122,7 @@ function RoomPage() {
     const { error } = await supabase
       .from("room_posts")
       .insert({ room_id: id, user_id: session.user.id, username: profile.username, text: value });
-    if (error) toast.error("Message non envoyé.");
+    if (error) toast.error(t("rooms.sendFailed"));
   };
 
   const meta = categoryMeta(room?.category);
@@ -149,7 +151,7 @@ function RoomPage() {
                 : "bg-gradient-brand text-primary-foreground"
             }`}
           >
-            {joined ? "Quitter" : "Rejoindre"}
+            {joined ? t("rooms.leave") : t("rooms.join")}
           </button>
         </div>
 
@@ -185,14 +187,14 @@ function RoomPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={joined ? "Écris un message…" : "Rejoins le salon pour écrire"}
+            placeholder={joined ? t("rooms.write") : t("rooms.joinToWrite")}
             disabled={!joined}
             className="flex-1 rounded-full border border-border bg-surface-2 px-4 py-3 text-sm outline-none focus:border-primary/60 disabled:opacity-50"
           />
           <button
             onClick={send}
             disabled={!joined || !text.trim()}
-            aria-label="Envoyer"
+            aria-label={t("rooms.send")}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground disabled:opacity-40"
           >
             <Send className="h-4 w-4" />

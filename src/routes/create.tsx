@@ -46,12 +46,12 @@ function CreatePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session) {
-      toast.error("Connecte-toi pour publier.");
+      toast.error(t("create.signin"));
       return;
     }
     const videoId = type === "video" ? extractYouTubeId(videoUrl) : null;
     if (type === "video" && !videoId) {
-      toast.error("Lien YouTube invalide.");
+      toast.error(t("create.invalidYoutube"));
       return;
     }
 
@@ -63,8 +63,8 @@ function CreatePage() {
       setBusy(false);
       toast.error(
         profileError
-          ? `Profil indisponible — ${profileError}`
-          : "Ton profil n'a pas pu être chargé. Réessaie dans un instant.",
+          ? t("profile.unavailableWhy", { message: profileError })
+          : t("profile.unavailable"),
       );
       return;
     }
@@ -91,7 +91,7 @@ function CreatePage() {
     }
     await awardXp(XP_REWARDS.publish);
     pushXp(XP_REWARDS.publish);
-    toast.success("Contenu publié 🎉");
+    toast.success(t("create.done"));
     navigate({ to: "/feed" });
   };
 
@@ -107,8 +107,8 @@ function CreatePage() {
         <div className="mt-6 grid grid-cols-2 gap-2">
           {(
             [
-              { value: "video", label: "🎬 Vidéo YouTube" },
-              { value: "text", label: "📝 Article" },
+              { value: "video", label: `🎬 ${t("create.type.video")}` },
+              { value: "text", label: `📝 ${t("create.type.text")}` },
             ] as const
           ).map((t) => (
             <button
@@ -127,18 +127,18 @@ function CreatePage() {
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <label className="block">
-            <span className="label-xs">Titre</span>
+            <span className="label-xs">{t("create.field.title")}</span>
             <input
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Pourquoi le ciel est bleu ?"
+              placeholder={t("create.placeholder.title")}
               className="mt-1.5 w-full rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm outline-none focus:border-primary/60"
             />
           </label>
 
           <label className="block">
-            <span className="label-xs">Description</span>
+            <span className="label-xs">{t("create.field.description")}</span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -149,7 +149,7 @@ function CreatePage() {
 
           {type === "video" ? (
             <label className="block">
-              <span className="label-xs">Lien YouTube</span>
+              <span className="label-xs">{t("create.field.youtube")}</span>
               <input
                 required
                 value={videoUrl}
@@ -160,7 +160,7 @@ function CreatePage() {
             </label>
           ) : (
             <label className="block">
-              <span className="label-xs">Contenu de l'article</span>
+              <span className="label-xs">{t("create.field.article")}</span>
               <textarea
                 required
                 value={textContent}
@@ -172,7 +172,7 @@ function CreatePage() {
           )}
 
           <div>
-            <span className="label-xs">Catégorie</span>
+            <span className="label-xs">{t("create.field.category")}</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {CATEGORIES.map((c) => (
                 <button
@@ -192,7 +192,7 @@ function CreatePage() {
           </div>
 
           <div>
-            <span className="label-xs">Difficulté</span>
+            <span className="label-xs">{t("create.field.difficulty")}</span>
             <div className="mt-1.5 flex flex-wrap gap-2">
               {DIFFICULTIES.map((d) => (
                 <button
@@ -216,7 +216,7 @@ function CreatePage() {
             disabled={busy}
             className="w-full rounded-xl bg-gradient-brand py-3.5 text-sm font-black text-primary-foreground disabled:opacity-50"
           >
-            {busy ? "Publication…" : "Publier"}
+            {busy ? t("create.busy") : t("create.submit")}
           </button>
         </form>
       </div>

@@ -213,7 +213,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
             {" · "}
             {/* Permet de constater d'un coup d'œil quelle version est en ligne. */}
-            <span title="Version déployée" className="tabular">
+            <span title={t("nav.build")} className="tabular">
               {__BUILD_ID__}
             </span>
           </p>
