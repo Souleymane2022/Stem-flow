@@ -2,21 +2,23 @@
 --  STEMFLOW — installation complète de la base, en un seul passage
 -- =====================================================================
 --
---  Concaténation des 7 migrations, dans l'ordre. À coller tel quel dans
+--  Concaténation des 12 migrations, dans l'ordre. À coller tel quel dans
 --  le SQL Editor de Supabase, puis « Run ». Une seule exécution suffit.
 --
 --  Ce fichier ne remplace pas les migrations : il les reprend telles
---  quelles pour éviter sept copier-coller. Les migrations individuelles
---  restent la référence pour l'historique du projet.
+--  quelles pour éviter autant de copier-coller. Les migrations
+--  individuelles restent la référence pour l'historique du projet.
 --
 --  Ne pas exécuter sur une base qui contient déjà ces tables : les
 --  CREATE TABLE des quatre premières migrations ne sont pas idempotents
---  et échoueraient sur « relation already exists ».
+--  et échoueraient sur « relation already exists ». Sur une base déjà
+--  installée, n'appliquer que les migrations manquantes.
 --
 --  Après exécution, contrôle rapide :
 --    select count(*) from public.contents;   -- environ 30 vidéos
 --    select title, lesson_count from public.courses;   -- 4 parcours
 -- =====================================================================
+
 
 
 -- =============================================================
@@ -395,6 +397,7 @@ INSERT INTO public.badges (name, description, icon, xp_required) VALUES
 ('Connecté', 'Suivez 10 utilisateurs', '🤝', 0),
 ('Bavard', 'Postez 50 commentaires', '💬', 0);
 
+
 -- =============================================================
 -- 20260804220401_fda81737-d203-4df4-98c9-d6cc66296cef.sql
 -- =============================================================
@@ -465,6 +468,7 @@ SELECT q.id, v.question, v.options, v.idx, v.expl, v.ord FROM q, (VALUES
   ('En binaire, que vaut le nombre 5 ?', ARRAY['100','101','110','111'], 1, '5 = 4 + 1 = 101 en base 2.', 3)
 ) AS v(question, options, idx, expl, ord);
 
+
 -- =============================================================
 -- 20260805120433_68b46fd8-a56d-4c7c-ad7f-02a0f15fb845.sql
 -- =============================================================
@@ -492,6 +496,7 @@ INSERT INTO public.contents (content_type, title, description, video_id, video_u
 ('video','Toutes les maths expliquées en 2 minutes','Un panorama rapide des branches des mathématiques.','wercBIRDR9Q','https://www.youtube.com/watch?v=wercBIRDR9Q','Mathématiques','debutant',10,'STEMFLOW',ARRAY['culture-maths']),
 ('video','Proportions et pourcentages en 2 min','Méthode et exemples pour les pourcentages.','jEYznOEEZrc','https://www.youtube.com/watch?v=jEYznOEEZrc','Mathématiques','debutant',10,'STEMFLOW',ARRAY['pourcentages']),
 ('video','La meilleure explication de Pi','Le nombre Pi en 73 secondes.','TlY-Sh9Rzas','https://www.youtube.com/watch?v=TlY-Sh9Rzas','Mathématiques','debutant',10,'STEMFLOW',ARRAY['pi']);
+
 
 -- =============================================================
 -- 20260806120315_ced8ab18-960a-42cc-a287-a36ade11ab19.sql
@@ -577,6 +582,7 @@ ALTER TABLE public.competitions REPLICA IDENTITY FULL;
 ALTER TABLE public.competition_participants REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.competitions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.competition_participants;
+
 
 -- =============================================================
 -- 20260817000000_fix_share_count_and_quiz_replay.sql
@@ -1042,3 +1048,548 @@ END $$;
 -- Contrôle après application :
 --   SELECT title, category, lesson_count FROM public.courses ORDER BY category;
 
+
+-- =============================================================
+-- 20260817030000_competitions_from_courses.sql
+-- =============================================================
+
+-- Un défi peut désormais naître d'un cours suivi plutôt que d'une notion saisie
+-- à la main. La colonne reste facultative : les défis à sujet libre continuent
+-- de fonctionner à l'identique.
+--
+-- ON DELETE SET NULL et non CASCADE : supprimer un cours ne doit pas effacer
+-- les défis qui en sont issus, ni les scores des participants.
+ALTER TABLE public.competitions
+  ADD COLUMN IF NOT EXISTS source_course_id uuid REFERENCES public.courses(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS competitions_source_course_idx
+  ON public.competitions (source_course_id);
+
+
+-- =============================================================
+-- 20260817040000_course_duels.sql
+-- =============================================================
+
+-- Progression visible entre apprenants d'un même cours, et duels entre deux
+-- d'entre eux.
+--
+-- Choix de confidentialité : voir la progression d'autrui est une exposition de
+-- données personnelles. Elle est donc conditionnée à un consentement explicite,
+-- porté par profiles.share_progress. La valeur par défaut est `true` parce que
+-- l'application est conçue autour de l'émulation entre apprenants, mais chacun
+-- peut se retirer sans perdre l'accès aux cours.
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS share_progress boolean NOT NULL DEFAULT true;
+
+-- Un défi peut viser une personne précise, et rester privé entre les deux.
+ALTER TABLE public.competitions
+  ADD COLUMN IF NOT EXISTS opponent_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+ALTER TABLE public.competitions
+  ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'public';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'competitions_visibility_check') THEN
+    ALTER TABLE public.competitions
+      ADD CONSTRAINT competitions_visibility_check CHECK (visibility IN ('public', 'private'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS competitions_opponent_idx ON public.competitions (opponent_id);
+
+-- ------------------------------------------------------ visibilité RLS
+-- La progression d'autrui n'est lisible que si son auteur l'a acceptée.
+DROP POLICY IF EXISTS enrollments_read_shared ON public.course_enrollments;
+CREATE POLICY enrollments_read_shared ON public.course_enrollments
+  FOR SELECT TO authenticated
+  USING (
+    auth.uid() = user_id
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+       WHERE p.id = public.course_enrollments.user_id AND p.share_progress
+    )
+  );
+
+-- Un défi privé ne concerne que ses deux protagonistes.
+DROP POLICY IF EXISTS competitions_read_all ON public.competitions;
+DROP POLICY IF EXISTS competitions_read_visible ON public.competitions;
+CREATE POLICY competitions_read_visible ON public.competitions
+  FOR SELECT
+  USING (
+    visibility = 'public'
+    OR auth.uid() = host_id
+    OR auth.uid() = opponent_id
+  );
+
+-- ------------------------------------------------------------- le duel
+--
+-- Créer un duel touche à plusieurs tables et doit notifier des tiers : la
+-- politique d'insertion des notifications restreint chacun à ses propres
+-- lignes, ce qui interdit au client de prévenir qui que ce soit. D'où une
+-- fonction SECURITY DEFINER, seule habilitée à écrire ces notifications.
+CREATE OR REPLACE FUNCTION public.create_course_duel(
+  p_course_id uuid,
+  p_opponent_id uuid,
+  p_visibility text DEFAULT 'public',
+  p_question_count integer DEFAULT 5
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid uuid := auth.uid();
+  me public.profiles%ROWTYPE;
+  foe public.profiles%ROWTYPE;
+  course public.courses%ROWTYPE;
+  vis text := CASE WHEN p_visibility = 'private' THEN 'private' ELSE 'public' END;
+  new_id uuid;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'authentification requise'; END IF;
+  IF uid = p_opponent_id THEN RAISE EXCEPTION 'on ne se défie pas soi-même'; END IF;
+
+  SELECT * INTO me FROM public.profiles WHERE id = uid;
+  IF NOT FOUND THEN RAISE EXCEPTION 'profil introuvable'; END IF;
+  SELECT * INTO foe FROM public.profiles WHERE id = p_opponent_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'adversaire introuvable'; END IF;
+  SELECT * INTO course FROM public.courses WHERE id = p_course_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'cours introuvable'; END IF;
+
+  -- Défier suppose de suivre le cours : sans quoi le défi ne porterait sur
+  -- rien de commun aux deux personnes.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.course_enrollments
+     WHERE course_id = p_course_id AND user_id = uid
+  ) THEN
+    RAISE EXCEPTION 'commence le cours avant de lancer un défi dessus';
+  END IF;
+
+  INSERT INTO public.competitions (
+    host_id, host_name, topic, category, difficulty,
+    question_count, xp_reward, source_course_id, opponent_id, visibility
+  ) VALUES (
+    uid, me.username, course.title, course.category, course.difficulty,
+    GREATEST(LEAST(COALESCE(p_question_count, 5), 12), 3), 60, course.id, p_opponent_id, vis
+  ) RETURNING id INTO new_id;
+
+  -- Les deux protagonistes sont inscrits d'emblée.
+  INSERT INTO public.competition_participants (competition_id, user_id, username, avatar_url)
+  VALUES (new_id, uid, me.username, me.profile_image_url),
+         (new_id, p_opponent_id, foe.username, foe.profile_image_url)
+  ON CONFLICT DO NOTHING;
+
+  -- L'adversaire est prévenu dans tous les cas.
+  INSERT INTO public.notifications (user_id, type, title, message)
+  VALUES (
+    p_opponent_id, 'duel',
+    format('%s te défie sur « %s »', me.username, course.title),
+    'Rejoins le défi et réponds plus vite que ton adversaire.'
+  );
+
+  -- Défi public : les autres apprenants du cours en sont informés. Plafonné,
+  -- pour qu'un cours très suivi ne déclenche pas des milliers d'écritures.
+  IF vis = 'public' THEN
+    INSERT INTO public.notifications (user_id, type, title, message)
+    SELECT e.user_id, 'duel_public',
+           format('%s et %s s''affrontent sur « %s »', me.username, foe.username, course.title),
+           'Ouvre le défi pour suivre le duel en direct.'
+      FROM public.course_enrollments e
+     WHERE e.course_id = p_course_id
+       AND e.user_id NOT IN (uid, p_opponent_id)
+     LIMIT 200;
+  END IF;
+
+  RETURN new_id;
+END; $$;
+
+REVOKE EXECUTE ON FUNCTION public.create_course_duel(uuid, uuid, text, integer) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.create_course_duel(uuid, uuid, text, integer) TO authenticated;
+
+
+-- =============================================================
+-- 20260817050000_competition_modes.sql
+-- =============================================================
+
+-- Modes de compétition et invitations.
+--
+--   solo  — s'entraîner seul sur un cours ;
+--   duel  — affrontement entre deux personnes désignées ;
+--   open  — salon ouvert, que n'importe qui peut rejoindre.
+--
+-- Jusqu'ici toute compétition était implicitement ouverte : la politique
+-- d'insertion des participants n'exigeait que `auth.uid() = user_id`, si bien
+-- qu'un tiers pouvait s'inviter dans un duel privé en devinant son
+-- identifiant. Le mode devient donc une règle d'accès, pas un simple libellé.
+
+-- Cette migration s'appuie sur 20260817040000_course_duels.sql (colonnes
+-- opponent_id et visibility). Sans elle, PostgreSQL échouerait plus bas sur un
+-- « column does not exist » qui n'indique pas la marche à suivre.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'competitions'
+       AND column_name = 'opponent_id'
+  ) THEN
+    RAISE EXCEPTION 'Applique d''abord 20260817040000_course_duels.sql : la colonne competitions.opponent_id est absente.';
+  END IF;
+END $$;
+
+ALTER TABLE public.competitions
+  ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'open';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'competitions_mode_check') THEN
+    ALTER TABLE public.competitions
+      ADD CONSTRAINT competitions_mode_check CHECK (mode IN ('solo', 'duel', 'open'));
+  END IF;
+END $$;
+
+-- Les duels déjà créés désignent un adversaire : ils relèvent du mode duel.
+UPDATE public.competitions SET mode = 'duel' WHERE opponent_id IS NOT NULL AND mode = 'open';
+
+-- ------------------------------------------------------- invitations
+CREATE TABLE IF NOT EXISTS public.competition_invites (
+  competition_id uuid NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  invited_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (competition_id, user_id)
+);
+
+GRANT SELECT ON public.competition_invites TO authenticated;
+GRANT ALL ON public.competition_invites TO service_role;
+ALTER TABLE public.competition_invites ENABLE ROW LEVEL SECURITY;
+
+
+-- --------------------------------------------- sortir de la récursion
+--
+-- Une politique sur `competitions` qui interroge `competition_invites`, et une
+-- politique sur `competition_invites` qui interroge `competitions`, forment un
+-- cycle : PostgreSQL lève « infinite recursion detected in policy ».
+--
+-- Ces deux fonctions sont en SECURITY DEFINER, donc exécutées avec les droits
+-- du propriétaire et hors RLS. Les politiques les appellent au lieu de lire
+-- directement l'autre table, ce qui rompt le cycle. Elles ne divulguent rien :
+-- l'une répond par un booléen sur une invitation que l'appelant désigne, la
+-- seconde ne renvoie qu'un identifiant d'hôte.
+CREATE OR REPLACE FUNCTION public.is_invited_to(p_competition_id uuid, p_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.competition_invites
+     WHERE competition_id = p_competition_id AND user_id = p_user_id
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.competition_host(p_competition_id uuid)
+RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT host_id FROM public.competitions WHERE id = p_competition_id;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.is_invited_to(uuid, uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.competition_host(uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.is_invited_to(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.competition_host(uuid) TO authenticated;
+
+-- Chacun voit les invitations qui le concernent ; l'hôte voit celles qu'il a
+-- envoyées. Aucune politique d'écriture : seule invite_to_competition insère.
+DROP POLICY IF EXISTS invites_read_involved ON public.competition_invites;
+CREATE POLICY invites_read_involved ON public.competition_invites
+  FOR SELECT TO authenticated
+  USING (
+    auth.uid() = user_id
+    OR auth.uid() = invited_by
+    OR auth.uid() = public.competition_host(public.competition_invites.competition_id)
+  );
+
+-- --------------------------------------------------- accès aux défis
+-- Une personne invitée doit voir le défi auquel on la convie.
+DROP POLICY IF EXISTS competitions_read_visible ON public.competitions;
+CREATE POLICY competitions_read_visible ON public.competitions
+  FOR SELECT
+  USING (
+    visibility = 'public'
+    OR auth.uid() = host_id
+    OR auth.uid() = opponent_id
+    OR public.is_invited_to(public.competitions.id, auth.uid())
+  );
+
+-- Rejoindre n'est plus libre : le mode et les invitations en décident.
+DROP POLICY IF EXISTS competition_participants_insert_own ON public.competition_participants;
+DROP POLICY IF EXISTS competition_participants_insert_allowed ON public.competition_participants;
+CREATE POLICY competition_participants_insert_allowed ON public.competition_participants
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM public.competitions c
+       WHERE c.id = public.competition_participants.competition_id
+         AND (
+           c.mode = 'open'
+           OR c.host_id = auth.uid()
+           OR c.opponent_id = auth.uid()
+           OR public.is_invited_to(c.id, auth.uid())
+         )
+    )
+  );
+
+-- ------------------------------------------------------ inviter
+--
+-- Comme pour les duels, prévenir un tiers est impossible depuis le client :
+-- la politique des notifications restreint chacun à ses propres lignes.
+CREATE OR REPLACE FUNCTION public.invite_to_competition(
+  p_competition_id uuid,
+  p_user_id uuid
+) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid uuid := auth.uid();
+  comp public.competitions%ROWTYPE;
+  me public.profiles%ROWTYPE;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'authentification requise'; END IF;
+  IF uid = p_user_id THEN RAISE EXCEPTION 'tu participes déjà'; END IF;
+
+  SELECT * INTO comp FROM public.competitions WHERE id = p_competition_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'défi introuvable'; END IF;
+  IF comp.host_id <> uid THEN RAISE EXCEPTION 'seul l''hôte peut inviter'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = p_user_id) THEN
+    RAISE EXCEPTION 'personne introuvable';
+  END IF;
+
+  SELECT * INTO me FROM public.profiles WHERE id = uid;
+
+  INSERT INTO public.competition_invites (competition_id, user_id, invited_by)
+  VALUES (p_competition_id, p_user_id, uid)
+  ON CONFLICT (competition_id, user_id) DO NOTHING;
+
+  INSERT INTO public.notifications (user_id, type, title, message)
+  VALUES (
+    p_user_id, 'invitation',
+    format('%s t''invite au défi « %s »', me.username, comp.topic),
+    'Rejoins le salon pour participer.'
+  );
+
+  RETURN true;
+END; $$;
+
+REVOKE EXECUTE ON FUNCTION public.invite_to_competition(uuid, uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.invite_to_competition(uuid, uuid) TO authenticated;
+
+-- Un duel créé depuis un cours relève désormais explicitement du mode duel.
+CREATE OR REPLACE FUNCTION public.create_course_duel(
+  p_course_id uuid,
+  p_opponent_id uuid,
+  p_visibility text DEFAULT 'public',
+  p_question_count integer DEFAULT 5
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid uuid := auth.uid();
+  me public.profiles%ROWTYPE;
+  foe public.profiles%ROWTYPE;
+  course public.courses%ROWTYPE;
+  vis text := CASE WHEN p_visibility = 'private' THEN 'private' ELSE 'public' END;
+  new_id uuid;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'authentification requise'; END IF;
+  IF uid = p_opponent_id THEN RAISE EXCEPTION 'on ne se défie pas soi-même'; END IF;
+
+  SELECT * INTO me FROM public.profiles WHERE id = uid;
+  IF NOT FOUND THEN RAISE EXCEPTION 'profil introuvable'; END IF;
+  SELECT * INTO foe FROM public.profiles WHERE id = p_opponent_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'adversaire introuvable'; END IF;
+  SELECT * INTO course FROM public.courses WHERE id = p_course_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'cours introuvable'; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.course_enrollments
+     WHERE course_id = p_course_id AND user_id = uid
+  ) THEN
+    RAISE EXCEPTION 'commence le cours avant de lancer un défi dessus';
+  END IF;
+
+  INSERT INTO public.competitions (
+    host_id, host_name, topic, category, difficulty,
+    question_count, xp_reward, source_course_id, opponent_id, visibility, mode
+  ) VALUES (
+    uid, me.username, course.title, course.category, course.difficulty,
+    GREATEST(LEAST(COALESCE(p_question_count, 5), 12), 3), 60,
+    course.id, p_opponent_id, vis, 'duel'
+  ) RETURNING id INTO new_id;
+
+  INSERT INTO public.competition_participants (competition_id, user_id, username, avatar_url)
+  VALUES (new_id, uid, me.username, me.profile_image_url),
+         (new_id, p_opponent_id, foe.username, foe.profile_image_url)
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.notifications (user_id, type, title, message)
+  VALUES (
+    p_opponent_id, 'duel',
+    format('%s te défie sur « %s »', me.username, course.title),
+    'Rejoins le défi et réponds plus vite que ton adversaire.'
+  );
+
+  IF vis = 'public' THEN
+    INSERT INTO public.notifications (user_id, type, title, message)
+    SELECT e.user_id, 'duel_public',
+           format('%s et %s s''affrontent sur « %s »', me.username, foe.username, course.title),
+           'Ouvre le défi pour suivre le duel en direct.'
+      FROM public.course_enrollments e
+     WHERE e.course_id = p_course_id
+       AND e.user_id NOT IN (uid, p_opponent_id)
+     LIMIT 200;
+  END IF;
+
+  RETURN new_id;
+END; $$;
+
+REVOKE EXECUTE ON FUNCTION public.create_course_duel(uuid, uuid, text, integer) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.create_course_duel(uuid, uuid, text, integer) TO authenticated;
+
+
+-- =============================================================
+-- 20260817060000_avatars_storage.sql
+-- =============================================================
+
+-- Photos de profil, stockées dans Supabase Storage.
+--
+-- Le compartiment est public en lecture : un avatar s'affiche dans le fil, les
+-- commentaires et les classements, y compris pour un visiteur non connecté.
+-- L'écriture, elle, est cloisonnée par utilisateur : le premier segment du
+-- chemin doit être son identifiant, ce qui empêche de remplacer la photo d'un
+-- autre.
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars', 'avatars', true, 2097152,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE
+  SET public = true,
+      file_size_limit = 2097152,
+      allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+DROP POLICY IF EXISTS avatars_read_all ON storage.objects;
+CREATE POLICY avatars_read_all ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS avatars_insert_own ON storage.objects;
+CREATE POLICY avatars_insert_own ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS avatars_update_own ON storage.objects;
+CREATE POLICY avatars_update_own ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text)
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+DROP POLICY IF EXISTS avatars_delete_own ON storage.objects;
+CREATE POLICY avatars_delete_own ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+
+-- =============================================================
+-- 20260817070000_lessons_in_feed.sql
+-- =============================================================
+
+-- Publier des leçons de cours dans le fil.
+--
+-- Une playlist importée ne vivait que dans sa page de cours : rien de ce
+-- catalogue n'atteignait le fil, alors que c'est là que les gens passent leur
+-- temps. Une leçon peut désormais être poussée dans le fil comme n'importe
+-- quel contenu, sans être dupliquée : la ligne `contents` garde un lien vers
+-- la leçon d'origine, ce qui permet de la retirer, d'éviter les doublons, et
+-- surtout de créditer le visionnage du fil sur la progression du cours.
+
+ALTER TABLE public.contents
+  ADD COLUMN IF NOT EXISTS source_course_id uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS source_lesson_id uuid REFERENCES public.course_lessons(id) ON DELETE CASCADE;
+
+-- Une leçon n'apparaît qu'une fois dans le fil. L'index partiel laisse
+-- cohabiter tous les contenus ordinaires, qui n'ont pas de leçon d'origine.
+CREATE UNIQUE INDEX IF NOT EXISTS contents_source_lesson_key
+  ON public.contents (source_lesson_id) WHERE source_lesson_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS contents_source_course_idx
+  ON public.contents (source_course_id) WHERE source_course_id IS NOT NULL;
+
+-- ------------------------------------------------------------ bascule
+--
+-- Le client ne peut pas insérer ces lignes lui-même : la politique
+-- `contents_insert_own` l'autoriserait à se déclarer auteur de n'importe quelle
+-- leçon, avec le titre et la catégorie de son choix. La fonction copie les
+-- champs depuis la leçon et le cours, donc le fil montre toujours ce que la
+-- playlist contient réellement.
+--
+-- Qui a le droit : l'auteur du cours. Les cours de démarrage n'ont pas
+-- d'auteur (`created_by IS NULL`) ; ils restent publiables par n'importe quel
+-- membre connecté, sans quoi le catalogue livré avec l'application ne pourrait
+-- jamais rejoindre le fil.
+CREATE OR REPLACE FUNCTION public.set_lesson_in_feed(p_lesson_id uuid, p_in_feed boolean)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  uid uuid := auth.uid();
+  lesson public.course_lessons%ROWTYPE;
+  course public.courses%ROWTYPE;
+  me public.profiles%ROWTYPE;
+  existing uuid;
+  created uuid;
+BEGIN
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'authentification requise';
+  END IF;
+
+  SELECT * INTO lesson FROM public.course_lessons WHERE id = p_lesson_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'leçon introuvable';
+  END IF;
+  SELECT * INTO course FROM public.courses WHERE id = lesson.course_id;
+  IF course.created_by IS NOT NULL AND course.created_by <> uid THEN
+    RAISE EXCEPTION 'seul l''auteur du cours peut publier ses leçons';
+  END IF;
+
+  SELECT id INTO existing FROM public.contents WHERE source_lesson_id = lesson.id;
+
+  IF NOT p_in_feed THEN
+    IF existing IS NOT NULL THEN
+      DELETE FROM public.contents WHERE id = existing;
+    END IF;
+    RETURN NULL;
+  END IF;
+
+  IF existing IS NOT NULL THEN
+    RETURN existing;
+  END IF;
+
+  SELECT * INTO me FROM public.profiles WHERE id = uid;
+
+  INSERT INTO public.contents (
+    content_type, title, description, video_url, video_id,
+    category, difficulty, xp_reward, author_id, author_name,
+    source_course_id, source_lesson_id
+  ) VALUES (
+    'video',
+    lesson.title,
+    -- La description YouTube d'une leçon est souvent un mur de liens : le fil
+    -- n'en affiche que le début, on stocke donc un extrait.
+    left(COALESCE(lesson.description, course.description, ''), 500),
+    'https://www.youtube.com/watch?v=' || lesson.video_id,
+    lesson.video_id,
+    course.category,
+    course.difficulty,
+    15,
+    uid,
+    COALESCE(me.username, 'stemflow'),
+    course.id,
+    lesson.id
+  ) RETURNING id INTO created;
+
+  RETURN created;
+END; $$;
+
+REVOKE EXECUTE ON FUNCTION public.set_lesson_in_feed(uuid, boolean) FROM public;
+GRANT EXECUTE ON FUNCTION public.set_lesson_in_feed(uuid, boolean) TO authenticated;
+
+-- Le fil doit pouvoir afficher « extrait du cours … » sans requête
+-- supplémentaire : PostgREST n'imbrique `courses` que si la relation est
+-- visible dans son cache de schéma.
+NOTIFY pgrst, 'reload schema';

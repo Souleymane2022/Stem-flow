@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Award, Check, ChevronLeft, PlayCircle, Swords, Users } from "lucide-react";
+import { Award, Check, ChevronLeft, PlayCircle, Radio, Swords, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ type Course = {
   lesson_count: number;
   passing_ratio: number;
   xp_reward: number;
+  created_by: string | null;
 };
 type Lesson = {
   id: string;
@@ -69,6 +70,9 @@ function CoursePage() {
   const [peers, setPeers] = useState<Peer[]>([]);
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [duelling, setDuelling] = useState<string | null>(null);
+  /** Leçons déjà visibles dans le fil. */
+  const [inFeed, setInFeed] = useState<Set<string>>(new Set());
+  const [switching, setSwitching] = useState<string | null>(null);
 
   const player = useRef<YouTubePlayerLike | null>(null);
   const lastTime = useRef(0);
@@ -76,10 +80,10 @@ function CoursePage() {
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [{ data: c }, { data: l }] = await Promise.all([
+      const [{ data: c }, { data: l }, { data: feedRows }] = await Promise.all([
         supabase
           .from("courses")
-          .select("id,title,description,category,lesson_count,passing_ratio,xp_reward")
+          .select("id,title,description,category,lesson_count,passing_ratio,xp_reward,created_by")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -87,10 +91,18 @@ function CoursePage() {
           .select("id,video_id,title,duration_seconds,sort_order")
           .eq("course_id", id)
           .order("sort_order"),
+        supabase.from("contents").select("source_lesson_id").eq("source_course_id", id),
       ]);
       if (!alive) return;
       setCourse((c as Course) ?? null);
       setLessons((l as Lesson[]) ?? []);
+      setInFeed(
+        new Set(
+          (feedRows ?? [])
+            .map((r) => r.source_lesson_id)
+            .filter((v): v is string => typeof v === "string"),
+        ),
+      );
       setLoading(false);
     })();
     return () => {
@@ -184,6 +196,36 @@ function CoursePage() {
     [id, visibility, navigate, t],
   );
 
+  /**
+   * Met une leçon dans le fil, ou l'en retire. L'insertion passe par une
+   * fonction SECURITY DEFINER : la politique `contents_insert_own` laisserait
+   * sinon n'importe qui publier une leçon sous un titre et une catégorie
+   * choisis, alors que le fil doit refléter la playlist telle quelle.
+   */
+  const toggleFeed = useCallback(
+    async (lessonId: string, next: boolean) => {
+      setSwitching(lessonId);
+      const { error } = await supabase.rpc("set_lesson_in_feed", {
+        p_lesson_id: lessonId,
+        p_in_feed: next,
+      });
+      setSwitching(null);
+      if (error) {
+        console.error("[cours] publication impossible", error);
+        toast.error(t("courses.feed.failed", { message: error.message }));
+        return;
+      }
+      setInFeed((prev) => {
+        const copy = new Set(prev);
+        if (next) copy.add(lessonId);
+        else copy.delete(lessonId);
+        return copy;
+      });
+      toast.success(next ? t("courses.feed.added") : t("courses.feed.removed"));
+    },
+    [t],
+  );
+
   const push = useCallback(
     async (lessonId: string, delta: number, position: number, duration: number) => {
       const { data, error } = await supabase.rpc("record_lesson_progress", {
@@ -251,6 +293,11 @@ function CoursePage() {
 
   const meta = categoryMeta(course.category);
   const threshold = Math.round(course.passing_ratio * 100);
+  // Les cours livrés avec l'application n'ont pas d'auteur : sans cette
+  // ouverture, leur catalogue ne pourrait jamais rejoindre le fil.
+  const canPublish = Boolean(
+    session && (!course.created_by || course.created_by === session.user.id),
+  );
 
   return (
     <AppShell>
@@ -416,20 +463,32 @@ function CoursePage() {
           </section>
         )}
 
-        <ol className="mt-6 space-y-2">
+        {canPublish && (
+          <p className="mt-8 rounded-xl border border-border bg-surface-2 px-3 py-2 text-[11px] text-muted-foreground">
+            {t("courses.feed.hint")}
+          </p>
+        )}
+
+        <ol className="mt-3 space-y-2">
           {lessons.map((lesson, index) => {
             const isDone = done.has(lesson.id);
             const isCurrent = current?.id === lesson.id;
+            const shown = inFeed.has(lesson.id);
             return (
-              <li key={lesson.id}>
+              <li
+                key={lesson.id}
+                className={`flex items-center gap-2 rounded-xl border pe-2 transition-colors ${
+                  isCurrent
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-surface-2 hover:border-primary/40"
+                }`}
+              >
+                {/* Le bouton de publication ne peut pas être imbriqué dans
+                    celui de la leçon : la rangée porte donc les deux côte à côte. */}
                 <button
                   type="button"
                   onClick={() => setCurrent(lesson)}
-                  className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-start transition-colors ${
-                    isCurrent
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-surface-2 hover:border-primary/40"
-                  }`}
+                  className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-start"
                 >
                   <span
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${
@@ -442,14 +501,39 @@ function CoursePage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{lesson.title}</span>
-                    {isDone && (
-                      <span className="text-[11px] font-bold text-primary">
-                        {t("courses.lessonDone")}
-                      </span>
-                    )}
+                    <span className="flex flex-wrap items-center gap-2">
+                      {isDone && (
+                        <span className="text-[11px] font-bold text-primary">
+                          {t("courses.lessonDone")}
+                        </span>
+                      )}
+                      {shown && (
+                        <span className="text-[11px] font-bold text-tech">
+                          {t("courses.feed.badge")}
+                        </span>
+                      )}
+                    </span>
                   </span>
                   {isCurrent && <PlayCircle className="h-4 w-4 shrink-0 text-primary" />}
                 </button>
+
+                {canPublish && (
+                  <button
+                    type="button"
+                    onClick={() => void toggleFeed(lesson.id, !shown)}
+                    disabled={switching === lesson.id}
+                    title={shown ? t("courses.feed.remove") : t("courses.feed.add")}
+                    aria-label={shown ? t("courses.feed.remove") : t("courses.feed.add")}
+                    aria-pressed={shown}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors disabled:opacity-50 ${
+                      shown
+                        ? "border-tech/50 bg-tech/15 text-tech"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Radio className="h-4 w-4" />
+                  </button>
+                )}
               </li>
             );
           })}

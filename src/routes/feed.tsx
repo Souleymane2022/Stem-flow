@@ -39,6 +39,10 @@ export const Route = createFileRoute("/feed")({
  * démarre sans latence ; au-delà, seule la vignette est rendue.
  */
 const PLAYER_WINDOW = 1;
+/** Envoi de la progression d'une leçon regardée depuis le fil. */
+const PROGRESS_TICK_MS = 5000;
+/** Au-delà, l'écart vient d'un saut dans la vidéo, pas d'un visionnage réel. */
+const MAX_REAL_DELTA = 10;
 
 /** Sentinelle du filtre « tous contenus », distincte des noms de catégorie. */
 const FOR_YOU = "__for_you__";
@@ -66,6 +70,8 @@ function FeedPage() {
   const activeIdRef = useRef<string | null>(null);
   const rewarded = useRef<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
+  /** Dernière position connue par leçon, pour ne créditer que l'avancée réelle. */
+  const lessonTimes = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (loading) return;
@@ -78,17 +84,28 @@ function FeedPage() {
     let alive = true;
     setFetching(true);
     const run = async () => {
-      let query = supabase
-        .from("contents")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(40);
+      // Le cours d'origine est imbriqué : la carte affiche « Cours · … » sans
+      // une requête de plus par vidéo.
+      const build = (withCourse: boolean) => {
+        const q = supabase
+          .from("contents")
+          .select(withCourse ? "*, course:courses!contents_source_course_id_fkey (id, title)" : "*")
+          .order("created_at", { ascending: false })
+          .limit(40);
+        return filter !== FOR_YOU ? q.eq("category", filter) : q;
+      };
 
-      if (filter !== FOR_YOU) query = query.eq("category", filter);
-
-      const { data } = await query;
+      const first = await build(true);
+      let data = first.data;
+      // Tant que la migration `lessons_in_feed` n'est pas appliquée, la colonne
+      // n'existe pas et PostgREST rejette toute la requête. Le fil ne doit pas
+      // se vider pour autant : on retombe sur la sélection simple.
+      if (first.error) {
+        console.error("[fil] lecture enrichie impossible, repli", first.error);
+        data = (await build(false)).data;
+      }
       if (!alive) return;
-      let rows = (data as ContentRow[]) ?? [];
+      let rows = (data as unknown as ContentRow[]) ?? [];
 
       if (filter === FOR_YOU && profile?.interests?.length) {
         const liked = new Set(profile.interests);
@@ -137,6 +154,48 @@ function FeedPage() {
       alive = false;
     };
   }, [session]);
+
+  // Une vidéo du fil issue d'un cours crédite la progression de ce cours.
+  // Sans cela, la même leçon serait à revoir dans l'onglet Cours pour compter,
+  // et le certificat resterait hors de portée de qui apprend dans le fil.
+  useEffect(() => {
+    if (!session) return;
+    const timer = setInterval(() => {
+      const id = activeIdRef.current;
+      if (!id) return;
+      const item = items.find((i) => i.id === id);
+      const lessonId = item?.source_lesson_id;
+      if (!lessonId) return;
+      const player = players.current.get(id);
+      if (!player?.getCurrentTime || !player.getDuration) return;
+      const position = player.getCurrentTime();
+      const duration = player.getDuration();
+      if (!duration) return;
+
+      const previous = lessonTimes.current.get(lessonId) ?? position;
+      lessonTimes.current.set(lessonId, position);
+      const delta = position - previous;
+      // Un écart plus large vient d'un saut dans la barre, pas d'un visionnage.
+      if (delta <= 0 || delta > MAX_REAL_DELTA) return;
+
+      void supabase
+        .rpc("record_lesson_progress", {
+          p_lesson_id: lessonId,
+          p_watched_delta: Math.round(delta),
+          p_position: Math.round(position),
+          p_duration: Math.round(duration),
+        })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("[fil] progression du cours non enregistrée", error);
+            return;
+          }
+          const result = data as { certificate_serial: string | null } | null;
+          if (result?.certificate_serial) toast.success(t("certificate.earned"));
+        });
+    }, PROGRESS_TICK_MS);
+    return () => clearInterval(timer);
+  }, [session, items, t]);
 
   // Autoplay via IntersectionObserver
   useEffect(() => {

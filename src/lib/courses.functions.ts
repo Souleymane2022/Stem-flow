@@ -8,7 +8,12 @@ type Input = {
   playlistUrl: string;
   category: string;
   difficulty: string;
+  /** Nombre de leçons à publier aussi dans le fil, en partant du début. */
+  feedCount?: number;
 };
+
+/** Au-delà, une seule playlist noierait le fil sous ses propres vidéos. */
+const MAX_FEED_COUNT = 10;
 
 type PlaylistItem = {
   snippet?: {
@@ -66,7 +71,8 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
     const difficulty = ["debutant", "intermediaire", "avance"].includes(input.difficulty)
       ? input.difficulty
       : "debutant";
-    return { playlistId, category, difficulty };
+    const feedCount = Math.min(Math.max(Math.trunc(input.feedCount ?? 0), 0), MAX_FEED_COUNT);
+    return { playlistId, category, difficulty, feedCount };
   })
   .handler(async ({ data, context }) => {
     const apiKey = process.env["YOUTUBE_API_KEY"];
@@ -81,7 +87,8 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
       .select("id")
       .eq("youtube_playlist_id", data.playlistId)
       .maybeSingle();
-    if (existing) return { ok: true, courseId: existing.id, imported: 0, alreadyExisted: true };
+    if (existing)
+      return { ok: true, courseId: existing.id, imported: 0, published: 0, alreadyExisted: true };
 
     // Titre et description de la playlist
     const meta = await fetchJson(
@@ -162,20 +169,66 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
     if (courseError || !course)
       throw new Error(courseError?.message ?? "Création du cours impossible");
 
-    const { error: lessonsError } = await supabaseAdmin.from("course_lessons").insert(
-      lessons.map((l, index) => ({
-        course_id: course.id,
-        video_id: l.videoId,
-        title: l.title.slice(0, 200),
-        description: l.description?.slice(0, 2000) ?? null,
-        duration_seconds: durations.get(l.videoId) ?? 0,
-        sort_order: index,
-      })),
-    );
+    const { data: inserted, error: lessonsError } = await supabaseAdmin
+      .from("course_lessons")
+      .insert(
+        lessons.map((l, index) => ({
+          course_id: course.id,
+          video_id: l.videoId,
+          title: l.title.slice(0, 200),
+          description: l.description?.slice(0, 2000) ?? null,
+          duration_seconds: durations.get(l.videoId) ?? 0,
+          sort_order: index,
+        })),
+      )
+      .select("id,video_id,title,description,sort_order");
     if (lessonsError) {
       await supabaseAdmin.from("courses").delete().eq("id", course.id);
       throw new Error(lessonsError.message);
     }
 
-    return { ok: true, courseId: course.id, imported: lessons.length, alreadyExisted: false };
+    // Quelques leçons rejoignent le fil, sinon la playlist reste invisible pour
+    // qui ne va jamais dans l'onglet Cours. La ligne du fil garde le lien vers
+    // la leçon : le visionnage compte alors dans la progression du cours.
+    let published = 0;
+    if (data.feedCount > 0 && inserted?.length) {
+      const { data: author } = await supabaseAdmin
+        .from("profiles")
+        .select("username")
+        .eq("id", context.userId)
+        .maybeSingle();
+
+      const chosen = [...inserted]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .slice(0, data.feedCount);
+
+      const { error: feedError } = await supabaseAdmin.from("contents").insert(
+        chosen.map((lesson) => ({
+          content_type: "video",
+          title: lesson.title,
+          description: (lesson.description ?? "").slice(0, 500) || null,
+          video_url: `https://www.youtube.com/watch?v=${lesson.video_id}`,
+          video_id: lesson.video_id,
+          category: data.category,
+          difficulty: data.difficulty,
+          xp_reward: 15,
+          author_id: context.userId,
+          author_name: author?.username ?? "stemflow",
+          source_course_id: course.id,
+          source_lesson_id: lesson.id,
+        })),
+      );
+      // Un échec ici ne doit pas perdre le cours : il est importé, seule la
+      // mise en avant a manqué, et chaque leçon reste publiable à la main.
+      if (feedError) console.error("[cours] publication dans le fil impossible", feedError);
+      else published = chosen.length;
+    }
+
+    return {
+      ok: true,
+      courseId: course.id,
+      imported: lessons.length,
+      published,
+      alreadyExisted: false,
+    };
   });

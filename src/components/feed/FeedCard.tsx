@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Volume2,
   VolumeX,
+  GraduationCap,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
@@ -36,6 +37,11 @@ export type ContentRow = {
   comments_count: number;
   shares_count: number;
   created_at: string;
+  /** Renseignés quand la vidéo est une leçon d'un cours publiée dans le fil. */
+  source_course_id: string | null;
+  source_lesson_id: string | null;
+  /** Cours d'origine, imbriqué par la requête du fil. */
+  course?: { id: string; title: string } | null;
 };
 
 type Props = {
@@ -298,6 +304,20 @@ export function FeedCard({
         <span className="pointer-events-none absolute start-4 top-4 z-20 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-bold text-muted-foreground md:start-8">
           <Play className="h-3 w-3" /> {t("feed.video")}
         </span>
+      )}
+
+      {/* Extrait de cours : le lien ramène au parcours complet, et le temps
+          regardé ici compte déjà dans sa progression. */}
+      {content.course && (
+        <Link
+          to="/courses/$id"
+          params={{ id: content.course.id }}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute start-4 top-14 z-30 flex max-w-[70%] items-center gap-1.5 rounded-full border border-tech/40 bg-background/80 px-2.5 py-1 text-[11px] font-bold text-tech backdrop-blur md:start-8"
+        >
+          <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{t("feed.fromCourse", { title: content.course.title })}</span>
+        </Link>
       )}
     </div>
   );

@@ -52,6 +52,8 @@ function CoursesPage() {
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [difficulty, setDifficulty] = useState("debutant");
+  /** Nombre de leçons poussées dans le fil dès l'import. */
+  const [feedCount, setFeedCount] = useState(3);
   const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
@@ -102,11 +104,16 @@ function CoursesPage() {
     if (!url.trim()) return;
     setImporting(true);
     try {
-      const result = await runImport({ data: { playlistUrl: url, category, difficulty } });
+      const result = await runImport({
+        data: { playlistUrl: url, category, difficulty, feedCount },
+      });
       toast.success(
         result.alreadyExisted
           ? t("courses.import.exists")
-          : t("courses.import.done", { count: result.imported }),
+          : `${t("courses.import.done", { count: result.imported })} · ${t(
+              "courses.import.published",
+              { count: result.published },
+            )}`,
       );
       setUrl("");
       await load();
@@ -160,6 +167,22 @@ function CoursesPage() {
                 ))}
               </select>
             </div>
+            <label className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2.5">
+              <span className="min-w-0 text-sm font-semibold">{t("courses.import.feedCount")}</span>
+              <select
+                value={feedCount}
+                onChange={(e) => setFeedCount(Number(e.target.value))}
+                className="shrink-0 rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"
+              >
+                {[0, 3, 5, 10].map((n) => (
+                  <option key={n} value={n}>
+                    {n === 0
+                      ? t("courses.import.feedNone")
+                      : t("courses.import.feedSome", { count: n })}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => void submitImport()}
