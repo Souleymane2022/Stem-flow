@@ -1142,6 +1142,22 @@ export type Database = {
         };
         Returns: undefined;
       };
+      feed_for_me: {
+        Args: {
+          p_limit?: number;
+          p_category?: string | null;
+          p_seed?: number;
+        };
+        Returns: Database["public"]["Tables"]["contents"]["Row"][];
+      };
+      record_video_engagement: {
+        Args: {
+          p_content_id: string;
+          p_watch_delta: number;
+          p_completion?: number;
+        };
+        Returns: undefined;
+      };
       is_app_admin: {
         Args: Record<string, never>;
         Returns: boolean;

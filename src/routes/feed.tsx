@@ -41,13 +41,53 @@ export const Route = createFileRoute("/feed")({
  * démarre sans latence ; au-delà, seule la vignette est rendue.
  */
 const PLAYER_WINDOW = 1;
+/** Au-delà, une même matière s'enchaîne assez pour donner l'impression d'un fil unique. */
+const MAX_SAME_CATEGORY_RUN = 2;
 /** Envoi de la progression d'une leçon regardée depuis le fil. */
 const PROGRESS_TICK_MS = 5000;
 /** Au-delà, l'écart vient d'un saut dans la vidéo, pas d'un visionnage réel. */
 const MAX_REAL_DELTA = 10;
+/** Secondes de visionnage cumulées avant d'être envoyées au classement. */
+const ENGAGEMENT_FLUSH_S = 15;
+/**
+ * Le cours d'origine est imbriqué dans la requête : la carte affiche
+ * « Cours · … » sans une requête de plus par vidéo.
+ */
+const EMBED = "*, course:courses!contents_source_course_id_fkey (id, title)";
+/** Distance de la fin à partir de laquelle on va chercher la suite. */
+const PREFETCH_FROM_END = 3;
 
 /** Sentinelle du filtre « tous contenus », distincte des noms de catégorie. */
 const FOR_YOU = "__for_you__";
+
+/**
+ * Évite qu'une même matière s'enchaîne trop longtemps.
+ *
+ * Le classement peut légitimement placer six vidéos de technologie d'affilée
+ * si c'est ce que la personne regarde ; le fil paraît alors monotone, et
+ * l'occasion de découvrir autre chose disparaît. On repousse la vidéo de trop
+ * derrière la première d'une autre matière, sans rien retirer ni retrier.
+ */
+function spreadCategories(rows: ContentRow[]): ContentRow[] {
+  const remaining = [...rows];
+  const out: ContentRow[] = [];
+
+  while (remaining.length > 0) {
+    let pick = 0;
+    const tail = out.slice(-MAX_SAME_CATEGORY_RUN);
+    if (
+      tail.length === MAX_SAME_CATEGORY_RUN &&
+      tail.every((r) => r.category === tail[0]!.category)
+    ) {
+      // Deux fois la même matière : on va chercher la mieux classée d'une
+      // autre. S'il n'y en a plus, la suite se déroule telle quelle.
+      const other = remaining.findIndex((r) => r.category !== tail[0]!.category);
+      if (other >= 0) pick = other;
+    }
+    out.push(remaining.splice(pick, 1)[0]!);
+  }
+  return out;
+}
 
 function FeedPage() {
   const navigate = useNavigate();
@@ -72,8 +112,14 @@ function FeedPage() {
   const activeIdRef = useRef<string | null>(null);
   const rewarded = useRef<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
-  /** Dernière position connue par leçon, pour ne créditer que l'avancée réelle. */
-  const lessonTimes = useRef<Map<string, number>>(new Map());
+  /** Dernière position connue par vidéo, pour ne créditer que l'avancée réelle. */
+  const watchTimes = useRef<Map<string, number>>(new Map());
+  /** Secondes regardées pas encore envoyées, par vidéo. */
+  const pendingWatch = useRef<Map<string, number>>(new Map());
+  /** Tirée une fois par visite : elle fixe la part de hasard du classement. */
+  const seed = useRef<number | null>(null);
+  /** Une seule demande de suite à la fois. */
+  const extending = useRef(false);
 
   useEffect(() => {
     if (loading) return;
@@ -86,35 +132,46 @@ function FeedPage() {
     let alive = true;
     setFetching(true);
     const run = async () => {
-      // Le cours d'origine est imbriqué : la carte affiche « Cours · … » sans
-      // une requête de plus par vidéo.
-      const build = (withCourse: boolean) => {
-        const q = supabase
-          .from("contents")
-          .select(withCourse ? "*, course:courses!contents_source_course_id_fkey (id, title)" : "*")
-          .order("created_at", { ascending: false })
-          .limit(40);
-        return filter !== FOR_YOU ? q.eq("category", filter) : q;
-      };
+      // La graine ne change qu'entre deux visites : l'ordre doit rester stable
+      // pendant qu'on fait défiler, sinon une vidéo déjà passée reviendrait au
+      // rechargement de la page suivante.
+      seed.current ??= Math.random();
 
-      const first = await build(true);
-      let data = first.data;
-      // Tant que la migration `lessons_in_feed` n'est pas appliquée, la colonne
-      // n'existe pas et PostgREST rejette toute la requête. Le fil ne doit pas
-      // se vider pour autant : on retombe sur la sélection simple.
-      if (first.error) {
-        console.error("[fil] lecture enrichie impossible, repli", first.error);
-        data = (await build(false)).data;
+      const ranked = await supabase
+        .rpc("feed_for_me", {
+          p_limit: 40,
+          p_category: filter === FOR_YOU ? null : filter,
+          p_seed: seed.current,
+        })
+        .select(EMBED);
+
+      let rows: ContentRow[] = [];
+      if (!ranked.error) {
+        rows = (ranked.data as unknown as ContentRow[]) ?? [];
+      } else {
+        // Repli tant que la migration de classement n'est pas appliquée : un
+        // fil moins fin vaut mieux qu'un fil vide.
+        console.error("[fil] classement indisponible, repli", ranked.error);
+        const build = (withCourse: boolean) => {
+          const q = supabase
+            .from("contents")
+            .select(withCourse ? EMBED : "*")
+            .order("created_at", { ascending: false })
+            .limit(40);
+          return filter !== FOR_YOU ? q.eq("category", filter) : q;
+        };
+        const first = await build(true);
+        const data = first.error ? (await build(false)).data : first.data;
+        rows = (data as unknown as ContentRow[]) ?? [];
+        if (filter === FOR_YOU && profile?.interests?.length) {
+          const liked = new Set(profile.interests);
+          rows = [...rows].sort(
+            (a, b) => Number(liked.has(b.category)) - Number(liked.has(a.category)),
+          );
+        }
       }
       if (!alive) return;
-      let rows = (data as unknown as ContentRow[]) ?? [];
-
-      if (filter === FOR_YOU && profile?.interests?.length) {
-        const liked = new Set(profile.interests);
-        rows = [...rows].sort(
-          (a, b) => Number(liked.has(b.category)) - Number(liked.has(a.category)),
-        );
-      }
+      rows = spreadCategories(rows);
       setItems(rows);
       setFetching(false);
 
@@ -138,6 +195,37 @@ function FeedPage() {
       alive = false;
     };
   }, [filter, profile?.interests]);
+
+  // Le fil ne doit pas buter sur une fin. À l'approche de la dernière vidéo,
+  // on redemande un classement avec une autre graine : les vidéos déjà vues
+  // étant repoussées, la suite apporte autre chose. Quand le catalogue est
+  // épuisé, rien n'est ajouté — plutôt que de reboucler sur les mêmes clés.
+  useEffect(() => {
+    if (!session || items.length === 0) return;
+    if (active < items.length - PREFETCH_FROM_END) return;
+    if (extending.current) return;
+    extending.current = true;
+
+    void (async () => {
+      seed.current = Math.random();
+      const { data, error } = await supabase
+        .rpc("feed_for_me", {
+          p_limit: 40,
+          p_category: filter === FOR_YOU ? null : filter,
+          p_seed: seed.current,
+        })
+        .select(EMBED);
+      if (error) {
+        console.error("[fil] suite indisponible", error);
+        extending.current = false;
+        return;
+      }
+      const known = new Set(items.map((i) => i.id));
+      const fresh = ((data as unknown as ContentRow[]) ?? []).filter((r) => !known.has(r.id));
+      if (fresh.length > 0) setItems((prev) => [...prev, ...spreadCategories(fresh)]);
+      extending.current = false;
+    })();
+  }, [active, items, session, filter]);
 
   // Fetch user interactions
   useEffect(() => {
@@ -180,28 +268,50 @@ function FeedPage() {
     [t],
   );
 
-  // Une vidéo du fil issue d'un cours crédite la progression de ce cours.
-  // Sans cela, la même leçon serait à revoir dans l'onglet Cours pour compter,
-  // et le certificat resterait hors de portée de qui apprend dans le fil.
+  // Mesure du visionnage : elle nourrit le classement du fil, et crédite la
+  // progression du cours quand la vidéo est une leçon. Sans cette dernière
+  // part, la même leçon serait à revoir dans l'onglet Cours pour compter, et
+  // le certificat resterait hors de portée de qui apprend dans le fil.
   useEffect(() => {
     if (!session) return;
     const timer = setInterval(() => {
       const id = activeIdRef.current;
       if (!id) return;
       const item = items.find((i) => i.id === id);
-      const lessonId = item?.source_lesson_id;
-      if (!lessonId) return;
+      if (!item) return;
       const player = players.current.get(id);
       if (!player?.getCurrentTime || !player.getDuration) return;
       const position = player.getCurrentTime();
       const duration = player.getDuration();
       if (!duration) return;
 
-      const previous = lessonTimes.current.get(lessonId) ?? position;
-      lessonTimes.current.set(lessonId, position);
+      const previous = watchTimes.current.get(id) ?? position;
+      watchTimes.current.set(id, position);
       const delta = position - previous;
       // Un écart plus large vient d'un saut dans la barre, pas d'un visionnage.
       if (delta <= 0 || delta > MAX_REAL_DELTA) return;
+
+      // Ce que le classement observera à la prochaine visite. Les secondes
+      // sont cumulées puis envoyées par paquets : un appel toutes les cinq
+      // secondes par personne n'apporterait rien de plus au classement.
+      const pending = (pendingWatch.current.get(id) ?? 0) + delta;
+      if (pending >= ENGAGEMENT_FLUSH_S) {
+        pendingWatch.current.set(id, 0);
+        void supabase
+          .rpc("record_video_engagement", {
+            p_content_id: id,
+            p_watch_delta: Math.round(pending),
+            p_completion: Math.min(1, position / duration),
+          })
+          .then(({ error }) => {
+            if (error) console.error("[fil] visionnage non enregistré", error);
+          });
+      } else {
+        pendingWatch.current.set(id, pending);
+      }
+
+      const lessonId = item.source_lesson_id;
+      if (!lessonId) return;
 
       void supabase
         .rpc("record_lesson_progress", {
