@@ -11,17 +11,30 @@ import {
   Swords,
   GraduationCap,
   LogOut,
+  MoreHorizontal,
   ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { MoreSheet } from "@/components/layout/MoreSheet";
 import { useAuth } from "@/hooks/useAuth";
 import { isAdminEmail } from "@/lib/admins";
 import { InstallLink } from "@/components/pwa/InstallApp";
 import { useI18n } from "@/lib/i18n";
 import { getLevel, levelProgress } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Entrées de la barre du bas, sur téléphone.
+ *
+ * Les huit entrées de la barre latérale n'y tenaient pas : à 390 px, chaque
+ * libellé recevait quarante pixels et finissait coupé — « Cours… », « Ranki… ».
+ * Cinq entrées tiennent, les autres passent dans le tiroir « Plus », qui
+ * accueille au passage les notifications, jusque-là inaccessibles depuis un
+ * téléphone.
+ */
+const MOBILE_NAV = ["/feed", "/search", "/create", "/courses", "/profile"] as const;
 
 const NAV = [
   { to: "/feed", label: "nav.feed", short: "nav.feed.short", icon: Home },
@@ -98,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const unread = useUnreadCount();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, session, signOut, user } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useI18n();
   const level = getLevel(profile?.xp ?? 0);
@@ -237,31 +251,52 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile bottom nav */}
       <nav
         className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-surface/95 backdrop-blur md:hidden"
-        style={{ gridTemplateColumns: `repeat(${NAV.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${MOBILE_NAV.length + 1}, minmax(0, 1fr))` }}
       >
-        {NAV.map(({ to, short, icon: Icon }) => {
-          const active = isActive(to);
-          const isCreate = to === "/create";
-          return (
-            <Link
-              key={to}
-              to={to}
-              className="flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2.5"
-            >
-              <Icon
-                className={`h-5 w-5 ${isCreate ? "text-primary" : active ? "text-primary" : "text-muted-foreground"}`}
-              />
-              <span
-                className={`w-full truncate text-center text-[10px] font-semibold ${
-                  active ? "text-primary" : "text-muted-foreground"
-                }`}
+        {NAV.filter((item) => (MOBILE_NAV as readonly string[]).includes(item.to)).map(
+          ({ to, short, icon: Icon }) => {
+            const active = isActive(to);
+            const isCreate = to === "/create";
+            return (
+              <Link
+                key={to}
+                to={to}
+                className="flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2.5"
               >
-                {t(short)}
-              </span>
-            </Link>
-          );
-        })}
+                <Icon
+                  className={`h-5 w-5 ${isCreate ? "text-primary" : active ? "text-primary" : "text-muted-foreground"}`}
+                />
+                <span
+                  className={`w-full truncate text-center text-[10px] font-semibold ${
+                    active ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {t(short)}
+                </span>
+              </Link>
+            );
+          },
+        )}
+
+        <button
+          type="button"
+          onClick={() => setMoreOpen(true)}
+          aria-label={t("nav.more")}
+          className="relative flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-2.5"
+        >
+          <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+          {unread > 0 && (
+            <span className="absolute end-1/4 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-foreground">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+          <span className="w-full truncate text-center text-[10px] font-semibold text-muted-foreground">
+            {t("nav.more")}
+          </span>
+        </button>
       </nav>
+
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} unread={unread} />
     </div>
   );
 }

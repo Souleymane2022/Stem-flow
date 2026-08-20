@@ -4,9 +4,12 @@ import { GraduationCap, Import, PlayCircle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useLabels } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
-import { categoryMeta, difficultyLabel } from "@/lib/categories";
+import { SkeletonCards } from "@/components/common/Skeleton";
+import { EmptyState } from "@/components/common/EmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
+import { categoryMeta } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
 
 export const Route = createFileRoute("/courses/")({
@@ -39,6 +42,7 @@ type Course = {
 function CoursesPage() {
   const { session, user } = useAuth();
   const { t } = useI18n();
+  const { categoryLabel, difficultyLabel } = useLabels();
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
@@ -93,10 +97,11 @@ function CoursesPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="flex items-center gap-2 text-3xl">
-          <GraduationCap className="h-7 w-7 text-primary" /> {t("courses.title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("courses.subtitle")}</p>
+        <PageHeader
+          icon={<GraduationCap className="h-6 w-6 text-primary" />}
+          title={t("courses.title")}
+          subtitle={t("courses.subtitle")}
+        />
 
         {/* L'import a quitté cette page : il décide de ce que tout le monde voit,
             il est donc réservé aux comptes autorisés et vit dans son propre écran. */}
@@ -109,14 +114,22 @@ function CoursesPage() {
           </Link>
         )}
 
-        {loading && <p className="mt-6 text-sm text-muted-foreground">{t("courses.loading")}</p>}
+        {loading && (
+          <div className="mt-6">
+            <SkeletonCards />
+          </div>
+        )}
         {!loading && loadError && (
           <p className="mt-6 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
             {loadError}
           </p>
         )}
         {!loading && !loadError && courses.length === 0 && (
-          <p className="mt-6 text-sm text-muted-foreground">{t("courses.empty")}</p>
+          <EmptyState
+            icon={<GraduationCap className="h-6 w-6" />}
+            title={t("courses.empty")}
+            hint={t("courses.empty.hint")}
+          />
         )}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -143,7 +156,7 @@ function CoursesPage() {
                   <span
                     className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}
                   >
-                    {meta.emoji} {course.category}
+                    {meta.emoji} {categoryLabel(course.category)}
                   </span>
                   <p className="mt-2 line-clamp-2 font-bold">{course.title}</p>
                   <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">

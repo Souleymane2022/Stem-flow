@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { categoryMeta, DIFFICULTIES } from "@/lib/categories";
 import { useAuth } from "@/hooks/useAuth";
 
 export type Locale = "fr" | "en" | "ar";
@@ -44,6 +45,35 @@ const fr = {
   "nav.privacy": "Confidentialité",
   "nav.terms": "CGU",
   "nav.signOut": "Se déconnecter",
+  "nav.more": "Plus",
+  "category.science": "Science",
+  "category.tech": "Technologie",
+  "category.engineering": "Ingénierie",
+  "category.maths": "Mathématiques",
+  "difficulty.debutant": "Débutant",
+  "difficulty.intermediaire": "Intermédiaire",
+  "difficulty.avance": "Avancé",
+  "search.title": "Explorer",
+  "competitions.subtitle":
+    "Choisis une notion, invite la communauté, et affronte les autres en direct.",
+  "search.subtitle": "Trouve un sujet, un quiz ou une vidéo.",
+  "search.placeholder": "Rechercher un contenu…",
+  "search.all": "Tout",
+  "search.busy": "Recherche…",
+  "search.empty": "Aucun résultat",
+  "search.empty.hint": "Essaie un autre mot, ou change de matière.",
+  "leaderboard.title": "Classement",
+  "leaderboard.mine": "Tu es #{rank} avec {xp} XP.",
+  "leaderboard.none": "Gagne de l'XP pour entrer dans le top 50.",
+  "rooms.title": "Salons",
+  "rooms.subtitle": "Des communautés par passion.",
+  "rooms.empty": "Aucun salon",
+  "rooms.empty.hint": "Les salons regroupent les membres par matière.",
+  "notifications.title": "Notifications",
+  "notifications.empty": "Rien de neuf",
+  "notifications.empty.hint": "Défis, invitations et réponses arriveront ici.",
+  "create.title": "Créer",
+  "create.subtitle": "Partage une ressource STEM et gagne +{xp} XP.",
 
   "auth.signup": "Inscription",
   "auth.signin": "Connexion",
@@ -152,7 +182,9 @@ const fr = {
   "courses.title": "Cours certifiants",
   "courses.subtitle": "Suis une playlist STEM jusqu'au bout et obtiens ton certificat.",
   "courses.loading": "Chargement des cours…",
-  "courses.empty": "Aucun cours pour l'instant. Importe une playlist pour commencer.",
+  "courses.empty": "Aucun cours pour l'instant.",
+  "courses.empty.hint":
+    "Les parcours certifiants apparaîtront ici dès qu'une playlist sera importée.",
   "courses.lessons": "{count} leçons",
   "courses.progress": "{percent} % terminé",
   "courses.start": "Commencer",
@@ -339,6 +371,34 @@ const en: Dictionary = {
   "nav.privacy": "Privacy",
   "nav.terms": "Terms",
   "nav.signOut": "Sign out",
+  "nav.more": "More",
+  "category.science": "Science",
+  "category.tech": "Technology",
+  "category.engineering": "Engineering",
+  "category.maths": "Mathematics",
+  "difficulty.debutant": "Beginner",
+  "difficulty.intermediaire": "Intermediate",
+  "difficulty.avance": "Advanced",
+  "search.title": "Explore",
+  "competitions.subtitle": "Pick a topic, invite the community, and take others on live.",
+  "search.subtitle": "Find a topic, a quiz or a video.",
+  "search.placeholder": "Search content…",
+  "search.all": "All",
+  "search.busy": "Searching…",
+  "search.empty": "No result",
+  "search.empty.hint": "Try another word, or switch subject.",
+  "leaderboard.title": "Leaderboard",
+  "leaderboard.mine": "You are #{rank} with {xp} XP.",
+  "leaderboard.none": "Earn XP to enter the top 50.",
+  "rooms.title": "Rooms",
+  "rooms.subtitle": "Communities by passion.",
+  "rooms.empty": "No room",
+  "rooms.empty.hint": "Rooms gather members by subject.",
+  "notifications.title": "Notifications",
+  "notifications.empty": "Nothing new",
+  "notifications.empty.hint": "Challenges, invitations and replies will land here.",
+  "create.title": "Create",
+  "create.subtitle": "Share a STEM resource and earn +{xp} XP.",
 
   "auth.signup": "Sign up",
   "auth.signin": "Sign in",
@@ -445,7 +505,8 @@ const en: Dictionary = {
   "courses.title": "Certified courses",
   "courses.subtitle": "Follow a STEM playlist to the end and earn your certificate.",
   "courses.loading": "Loading courses…",
-  "courses.empty": "No course yet. Import a playlist to get started.",
+  "courses.empty": "No course yet.",
+  "courses.empty.hint": "Certified paths will show up here as soon as a playlist is imported.",
   "courses.lessons": "{count} lessons",
   "courses.progress": "{percent}% complete",
   "courses.start": "Start",
@@ -629,6 +690,34 @@ const ar: Dictionary = {
   "nav.privacy": "الخصوصية",
   "nav.terms": "الشروط",
   "nav.signOut": "تسجيل الخروج",
+  "nav.more": "المزيد",
+  "category.science": "علوم",
+  "category.tech": "تقنية",
+  "category.engineering": "هندسة",
+  "category.maths": "رياضيات",
+  "difficulty.debutant": "مبتدئ",
+  "difficulty.intermediaire": "متوسّط",
+  "difficulty.avance": "متقدّم",
+  "search.title": "استكشاف",
+  "competitions.subtitle": "اختر موضوعًا، وادعُ المجتمع، ونافس الآخرين مباشرة.",
+  "search.subtitle": "ابحث عن موضوع أو اختبار أو فيديو.",
+  "search.placeholder": "ابحث في المحتوى…",
+  "search.all": "الكل",
+  "search.busy": "جارٍ البحث…",
+  "search.empty": "لا نتائج",
+  "search.empty.hint": "جرّب كلمة أخرى أو غيّر المادة.",
+  "leaderboard.title": "الترتيب",
+  "leaderboard.mine": "أنت رقم {rank} بـ {xp} نقطة.",
+  "leaderboard.none": "اجمع النقاط لدخول أفضل 50.",
+  "rooms.title": "الغرف",
+  "rooms.subtitle": "مجتمعات حسب الشغف.",
+  "rooms.empty": "لا توجد غرف",
+  "rooms.empty.hint": "تجمع الغرف الأعضاء حسب المادة.",
+  "notifications.title": "الإشعارات",
+  "notifications.empty": "لا جديد",
+  "notifications.empty.hint": "ستصل هنا التحدّيات والدعوات والردود.",
+  "create.title": "إنشاء",
+  "create.subtitle": "شارك مصدرًا في STEM واكسب +{xp} نقطة.",
 
   "auth.signup": "إنشاء حساب",
   "auth.signin": "تسجيل الدخول",
@@ -734,7 +823,8 @@ const ar: Dictionary = {
   "courses.title": "دورات بشهادات",
   "courses.subtitle": "أكمل قائمة تشغيل علمية حتى نهايتها واحصل على شهادتك.",
   "courses.loading": "جارٍ تحميل الدورات…",
-  "courses.empty": "لا توجد دورات بعد. استورد قائمة تشغيل للبدء.",
+  "courses.empty": "لا توجد دورات بعد.",
+  "courses.empty.hint": "ستظهر المسارات المعتمدة هنا فور استيراد قائمة تشغيل.",
   "courses.lessons": "{count} دروس",
   "courses.progress": "اكتمل {percent}٪",
   "courses.start": "ابدأ",
@@ -992,4 +1082,30 @@ export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) throw new Error("useI18n doit être utilisé dans I18nProvider");
   return ctx;
+}
+
+/**
+ * Libellés des matières et des niveaux.
+ *
+ * La valeur stockée en base est française — c'est elle qui sert de clé, dans
+ * `contents.category` comme dans les filtres — mais elle n'a pas à s'afficher
+ * telle quelle : un écran en anglais montrait « Ingénierie » au milieu de sa
+ * propre langue. La correspondance passe par le jeton de la matière, stable
+ * quelle que soit la langue d'affichage.
+ */
+export function useLabels() {
+  const { t } = useI18n();
+  return useMemo(
+    () => ({
+      categoryLabel: (category?: string | null) => {
+        const token = categoryMeta(category).token;
+        return t(`category.${token}` as Key);
+      },
+      difficultyLabel: (value?: string | null) => {
+        const known = DIFFICULTIES.some((d) => d.value === value);
+        return t(`difficulty.${known ? value : "debutant"}` as Key);
+      },
+    }),
+    [t],
+  );
 }

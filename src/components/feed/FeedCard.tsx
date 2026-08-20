@@ -15,12 +15,12 @@ import {
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
-import { categoryMeta, difficultyLabel } from "@/lib/categories";
+import { categoryMeta } from "@/lib/categories";
 import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { youtubeThumbnail } from "@/utils/youtube";
 import { BrandSplash } from "@/components/brand/BrandSplash";
 import { markBrandBreakShown, shouldShowBrandBreak } from "@/lib/brandBreak";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useLabels } from "@/lib/i18n";
 
 export type ContentRow = {
   id: string;
@@ -99,6 +99,7 @@ export function FeedCard({
   onXp,
 }: Props) {
   const { t } = useI18n();
+  const { categoryLabel, difficultyLabel } = useLabels();
   const meta = categoryMeta(content.category);
   // Décidé au montage, comme la lecture : le fil monte la slide suivante à
   // l'avance, et attendre qu'elle soit à l'écran ferait apparaître l'annonce
@@ -294,7 +295,7 @@ export function FeedCard({
             <span
               className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}
             >
-              {meta.emoji} {content.category}
+              {meta.emoji} {categoryLabel(content.category)}
             </span>
             <span className="rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
               {difficultyLabel(content.difficulty)}

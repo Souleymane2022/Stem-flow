@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { SkeletonList } from "@/components/common/Skeleton";
+import { PageHeader } from "@/components/common/PageHeader";
+import { useI18n } from "@/lib/i18n";
 import { getLevel, levelBgClass } from "@/lib/xp";
 
 export const Route = createFileRoute("/leaderboard")({
@@ -31,6 +35,7 @@ type Row = {
 
 function LeaderboardPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,15 +61,18 @@ function LeaderboardPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="text-3xl">Classement</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {myRank > 0
-            ? `Tu es #${myRank} avec ${profile?.xp ?? 0} XP.`
-            : "Gagne de l'XP pour entrer dans le top 50."}
-        </p>
+        <PageHeader
+          icon={<Trophy className="h-6 w-6 text-primary" />}
+          title={t("leaderboard.title")}
+          subtitle={
+            myRank > 0
+              ? t("leaderboard.mine", { rank: myRank, xp: profile?.xp ?? 0 })
+              : t("leaderboard.none")
+          }
+        />
 
         <div className="mt-6 space-y-2">
-          {loading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+          {loading && <SkeletonList rows={6} />}
           {rows.map((row, i) => {
             const level = getLevel(row.xp);
             const isMe = row.id === profile?.id;

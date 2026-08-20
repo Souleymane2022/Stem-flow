@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
+import { SkeletonList } from "@/components/common/Skeleton";
+import { PageHeader } from "@/components/common/PageHeader";
+import { useI18n } from "@/lib/i18n";
 import { categoryMeta } from "@/lib/categories";
 
 export const Route = createFileRoute("/rooms/")({
@@ -32,6 +36,7 @@ type Room = {
 };
 
 function RoomsPage() {
+  const { t } = useI18n();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,10 +59,17 @@ function RoomsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="text-3xl">Salons</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Des communautés par passion.</p>
+        <PageHeader
+          icon={<Users className="h-6 w-6 text-primary" />}
+          title={t("rooms.title")}
+          subtitle={t("rooms.subtitle")}
+        />
 
-        {loading && <p className="mt-6 text-sm text-muted-foreground">Chargement…</p>}
+        {loading && (
+          <div className="mt-6">
+            <SkeletonList rows={4} />
+          </div>
+        )}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           {rooms.map((room) => {

@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useXpPopup } from "@/components/gamification/XpPopup";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/common/PageHeader";
+import { useI18n } from "@/lib/i18n";
+import { PlusCircle } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/lib/categories";
 import { XP_REWARDS } from "@/lib/xp";
 import { extractYouTubeId } from "@/utils/youtube";
@@ -27,6 +30,7 @@ export const Route = createFileRoute("/create")({
 
 function CreatePage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { session, profile, refreshProfile, profileError, awardXp } = useAuth();
   const pushXp = useXpPopup();
 
@@ -94,10 +98,11 @@ function CreatePage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="text-3xl">Créer</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Partage une ressource STEM et gagne +{XP_REWARDS.publish} XP.
-        </p>
+        <PageHeader
+          icon={<PlusCircle className="h-6 w-6 text-primary" />}
+          title={t("create.title")}
+          subtitle={t("create.subtitle", { xp: XP_REWARDS.publish })}
+        />
 
         <div className="mt-6 grid grid-cols-2 gap-2">
           {(

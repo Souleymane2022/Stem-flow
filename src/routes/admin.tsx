@@ -15,9 +15,10 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useLabels } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
-import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
+import { PageHeader } from "@/components/common/PageHeader";
+import { CATEGORIES, categoryMeta } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
 import { explainDbError } from "@/lib/db-errors";
 import { importYoutubePlaylist } from "@/lib/courses.functions";
@@ -69,6 +70,7 @@ export const Route = createFileRoute("/admin")({
 function AdminPage() {
   const { user, loading } = useAuth();
   const { t } = useI18n();
+  const { categoryLabel, difficultyLabel } = useLabels();
   const navigate = useNavigate();
 
   const runImport = useServerFn(importYoutubePlaylist);
@@ -276,10 +278,11 @@ function AdminPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="flex items-center gap-2 text-3xl">
-          <ShieldCheck className="h-7 w-7 text-primary" /> {t("admin.title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("admin.subtitle")}</p>
+        <PageHeader
+          icon={<ShieldCheck className="h-6 w-6 text-primary" />}
+          title={t("admin.title")}
+          subtitle={t("admin.subtitle")}
+        />
 
         {/* ------------------------------------------------ playlists */}
         <section className="mt-6 rounded-2xl border border-border bg-surface p-4">
@@ -300,7 +303,7 @@ function AdminPage() {
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {categoryMeta(c).emoji} {c}
+                  {categoryMeta(c).emoji} {categoryLabel(c)}
                 </option>
               ))}
             </select>
@@ -364,7 +367,7 @@ function AdminPage() {
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {categoryMeta(c).emoji} {c}
+                  {categoryMeta(c).emoji} {categoryLabel(c)}
                 </option>
               ))}
             </select>
@@ -427,7 +430,7 @@ function AdminPage() {
                   >
                     <span className="block truncate text-sm font-semibold">{course.title}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">
-                      {course.category} ·{" "}
+                      {categoryLabel(course.category)} ·{" "}
                       {t("admin.courses.lessons", { count: course.lesson_count })}
                       {!course.published && ` · ${t("admin.courses.hidden")}`}
                     </span>
@@ -496,7 +499,7 @@ function AdminPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{video.title}</span>
                     <span className="block truncate text-[11px] text-muted-foreground">
-                      {video.category} · @{video.author_name ?? "stemflow"} ·{" "}
+                      {categoryLabel(video.category)} · @{video.author_name ?? "stemflow"} ·{" "}
                       {new Date(video.created_at).toLocaleDateString()}
                     </span>
                   </span>

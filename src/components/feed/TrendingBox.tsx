@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Eye, Flame } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useLabels } from "@/lib/i18n";
 import { categoryMeta } from "@/lib/categories";
 import { youtubeThumbnail } from "@/utils/youtube";
 
@@ -30,6 +30,7 @@ const HOW_MANY = 8;
  */
 export function TrendingBox() {
   const { t } = useI18n();
+  const { categoryLabel } = useLabels();
   const [rows, setRows] = useState<Trending[]>([]);
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export function TrendingBox() {
               <span className="block p-2.5">
                 <span className="line-clamp-2 text-xs font-bold leading-snug">{row.title}</span>
                 <span className={`mt-1.5 block text-[10px] font-bold ${meta.text}`}>
-                  {meta.emoji} {row.category}
+                  {meta.emoji} {categoryLabel(row.category)}
                 </span>
               </span>
             </Link>

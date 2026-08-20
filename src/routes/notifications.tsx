@@ -4,6 +4,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { SkeletonList } from "@/components/common/Skeleton";
 
 export const Route = createFileRoute("/notifications")({
   head: () => ({
@@ -104,7 +105,7 @@ function NotificationsPage() {
         </div>
 
         <div className="mt-6 space-y-2">
-          {loading && <p className="text-sm text-muted-foreground">Chargement…</p>}
+          {loading && <SkeletonList rows={5} />}
           {!loading && items.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <Bell className="h-8 w-8 text-muted-foreground" />

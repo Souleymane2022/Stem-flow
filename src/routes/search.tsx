@@ -3,7 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
-import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
+import { PageHeader } from "@/components/common/PageHeader";
+import { SkeletonList } from "@/components/common/Skeleton";
+import { EmptyState } from "@/components/common/EmptyState";
+import { useI18n, useLabels } from "@/lib/i18n";
+import { CATEGORIES, categoryMeta } from "@/lib/categories";
 import { TrendingBox } from "@/components/feed/TrendingBox";
 
 export const Route = createFileRoute("/search")({
@@ -34,6 +38,8 @@ type Row = {
 };
 
 function SearchPage() {
+  const { t } = useI18n();
+  const { categoryLabel, difficultyLabel } = useLabels();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("Tout");
   const [rows, setRows] = useState<Row[]>([]);
@@ -66,15 +72,18 @@ function SearchPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="text-3xl">Explorer</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Trouve un sujet, un quiz ou une vidéo.</p>
+        <PageHeader
+          icon={<SearchIcon className="h-6 w-6 text-primary" />}
+          title={t("search.title")}
+          subtitle={t("search.subtitle")}
+        />
 
         <div className="relative mt-5">
           <SearchIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un contenu…"
+            placeholder={t("search.placeholder")}
             className="w-full rounded-full border border-border bg-surface-2 py-3 pl-11 pr-4 text-sm outline-none focus:border-primary/60"
           />
         </div>
@@ -90,7 +99,7 @@ function SearchPage() {
                   : "border-border bg-surface-2 text-muted-foreground"
               }`}
             >
-              {c}
+              {c === "Tout" ? t("search.all") : categoryLabel(c)}
             </button>
           ))}
         </div>
@@ -98,9 +107,13 @@ function SearchPage() {
         {!query.trim() && <TrendingBox />}
 
         <div className="mt-6 space-y-2.5">
-          {loading && <p className="text-sm text-muted-foreground">Recherche…</p>}
+          {loading && <SkeletonList rows={5} />}
           {!loading && rows.length === 0 && (
-            <p className="py-12 text-center text-sm text-muted-foreground">Aucun résultat.</p>
+            <EmptyState
+              icon={<SearchIcon className="h-6 w-6" />}
+              title={t("search.empty")}
+              hint={t("search.empty.hint")}
+            />
           )}
           {rows.map((row) => {
             const meta = categoryMeta(row.category);
@@ -121,7 +134,7 @@ function SearchPage() {
                     <span
                       className={`rounded-full border px-2 py-0.5 ${meta.bg} ${meta.border} ${meta.text}`}
                     >
-                      {row.category}
+                      {categoryLabel(row.category)}
                     </span>
                     <span className="rounded-full border border-border px-2 py-0.5 text-muted-foreground">
                       {difficultyLabel(row.difficulty)}

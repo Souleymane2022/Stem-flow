@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Swords, Users, Clock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
+import { SkeletonList } from "@/components/common/Skeleton";
+import { PageHeader } from "@/components/common/PageHeader";
+import { useI18n, useLabels } from "@/lib/i18n";
 import { CATEGORIES, categoryMeta } from "@/lib/categories";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -70,6 +73,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 function CompetitionsPage() {
   const { user, profile, loading: authLoading, refreshProfile, profileError } = useAuth();
+  const { t } = useI18n();
+  const { categoryLabel } = useLabels();
   const navigate = useNavigate();
   const [items, setItems] = useState<Competition[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -208,9 +213,11 @@ function CompetitionsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
-        <h1 className="flex items-center gap-2 text-3xl">
-          <Swords className="h-7 w-7 text-primary" /> Compétitions
-        </h1>
+        <PageHeader
+          icon={<Swords className="h-6 w-6 text-primary" />}
+          title={t("nav.competitions")}
+          subtitle={t("competitions.subtitle")}
+        />
         <p className="mt-1 text-sm text-muted-foreground">
           Choisis une notion, invite la communauté, et affronte les autres en direct.
         </p>
@@ -335,7 +342,7 @@ function CompetitionsPage() {
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {categoryMeta(c).emoji} {c}
+                  {categoryMeta(c).emoji} {categoryLabel(c)}
                 </option>
               ))}
             </select>
@@ -383,7 +390,11 @@ function CompetitionsPage() {
 
         {/* Liste */}
         <h2 className="mt-8 text-base font-bold">Défis de la communauté</h2>
-        {loading && <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>}
+        {loading && (
+          <div className="mt-3">
+            <SkeletonList rows={4} />
+          </div>
+        )}
         {!loading && items.length === 0 && (
           <p className="mt-3 text-sm text-muted-foreground">
             Aucun défi pour l'instant. Sois le premier !

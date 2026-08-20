@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, useLabels } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
 import { VideoPlayer, type YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { categoryMeta } from "@/lib/categories";
@@ -62,6 +62,7 @@ function CoursePage() {
   const { id } = Route.useParams();
   const { session, profile } = useAuth();
   const { t } = useI18n();
+  const { categoryLabel } = useLabels();
   const navigate = useNavigate();
   const pushNotify = useServerFn(notifyUser);
 
@@ -364,7 +365,7 @@ function CoursePage() {
           <span
             className={`rounded-full ${meta.bg} px-2 py-0.5 text-[11px] font-bold ${meta.text}`}
           >
-            {meta.emoji} {course.category}
+            {meta.emoji} {categoryLabel(course.category)}
           </span>
           <h1 className="mt-2 text-2xl font-black leading-tight">{course.title}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
