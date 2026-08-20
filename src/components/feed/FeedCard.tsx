@@ -16,6 +16,7 @@ import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
 import { categoryMeta, difficultyLabel } from "@/lib/categories";
 import { InfinityGlyph } from "@/components/brand/InfinityMark";
 import { youtubeThumbnail } from "@/utils/youtube";
+import { BrandSplash } from "@/components/brand/BrandSplash";
 import { useI18n } from "@/lib/i18n";
 
 export type ContentRow = {
@@ -62,6 +63,13 @@ type Props = {
 
 type Burst = { id: number; x: number; y: number };
 
+/**
+ * Vidéos déjà précédées de l'ouverture de marque pendant cette visite. Le fil
+ * démonte les lecteurs éloignés : sans cette mémoire hors composant, revenir
+ * en arrière rejouerait l'annonce à chaque passage.
+ */
+const advertised = new Set<string>();
+
 export function FeedCard({
   content,
   liked,
@@ -82,6 +90,7 @@ export function FeedCard({
 }: Props) {
   const { t } = useI18n();
   const meta = categoryMeta(content.category);
+  const [splashDone, setSplashDone] = useState(() => advertised.has(content.id));
   const lastTap = useRef(0);
   const [bursts, setBursts] = useState<Burst[]>([]);
 
@@ -108,7 +117,14 @@ export function FeedCard({
       {/* Media layer */}
       {content.content_type === "video" && content.video_id ? (
         <div className="absolute inset-0">
-          {mountPlayer ? (
+          {mountPlayer && !splashDone ? (
+            <BrandSplash
+              onDone={() => {
+                advertised.add(content.id);
+                setSplashDone(true);
+              }}
+            />
+          ) : mountPlayer ? (
             <VideoPlayer
               videoId={content.video_id}
               onPlayerReady={onPlayerReady}

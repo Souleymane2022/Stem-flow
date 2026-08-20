@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
+import { useI18n } from "@/lib/i18n";
+import { ProfileActivity } from "@/components/profile/ProfileActivity";
 import { getLevel, levelBgClass } from "@/lib/xp";
 import { categoryMeta } from "@/lib/categories";
 
@@ -29,11 +31,14 @@ type PublicProfile = {
   xp: number;
   streak: number;
   interests: string[] | null;
+  profile_image_url: string | null;
+  share_progress: boolean;
 };
 
 function PublicProfilePage() {
   const { id } = Route.useParams();
   const { session } = useAuth();
+  const { t } = useI18n();
   const [person, setPerson] = useState<PublicProfile | null>(null);
   const [contents, setContents] = useState<{ id: string; title: string; category: string }[]>([]);
   const [following, setFollowing] = useState(false);
@@ -45,7 +50,7 @@ function PublicProfilePage() {
       const [{ data: p }, { data: c }, { count }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id,username,bio,xp,streak,interests")
+          .select("id,username,bio,xp,streak,interests,profile_image_url,share_progress")
           .eq("id", id)
           .maybeSingle(),
         supabase.from("contents").select("id,title,category").eq("author_id", id).limit(20),
@@ -95,7 +100,7 @@ function PublicProfilePage() {
       await supabase.from("follows").insert({ follower_id: session.user.id, following_id: id });
       setFollowing(true);
       setFollowers((f) => f + 1);
-      toast.success("Abonnement ajouté");
+      toast.success(t("person.followed"));
     }
   };
 
@@ -103,7 +108,7 @@ function PublicProfilePage() {
     return (
       <AppShell>
         <div className="flex h-[60vh] items-center justify-center text-sm text-muted-foreground">
-          Chargement…
+          {t("common.loading")}
         </div>
       </AppShell>
     );
@@ -115,9 +120,17 @@ function PublicProfilePage() {
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
         <header className="flex items-start gap-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-brand text-3xl font-black text-primary-foreground">
-            {person.username.charAt(0).toUpperCase()}
-          </div>
+          {person.profile_image_url ? (
+            <img
+              src={person.profile_image_url}
+              alt=""
+              className="h-20 w-20 shrink-0 rounded-2xl object-cover"
+            />
+          ) : (
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-brand text-3xl font-black text-primary-foreground">
+              {person.username.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl">@{person.username}</h1>
             <span
@@ -127,7 +140,9 @@ function PublicProfilePage() {
             </span>
             <div className="mt-3 flex gap-4 text-xs font-bold">
               <span className="text-primary tabular">{person.xp} XP</span>
-              <span className="text-muted-foreground tabular">{followers} abonnés</span>
+              <span className="text-muted-foreground tabular">
+                {t("person.followers", { count: followers })}
+              </span>
               <span className="text-engineering">🔥 {person.streak} j</span>
             </div>
           </div>
@@ -140,33 +155,26 @@ function PublicProfilePage() {
                   : "bg-gradient-brand text-primary-foreground"
               }`}
             >
-              {following ? "Abonné" : "Suivre"}
+              {following ? t("person.following") : t("person.follow")}
             </button>
           )}
         </header>
 
-        {person.interests?.length ? (
-          <div className="mt-5 flex flex-wrap gap-2">
-            {person.interests.map((i) => {
-              const meta = categoryMeta(i);
-              return (
-                <span
-                  key={i}
-                  className={`rounded-full border px-3 py-1 text-[11px] font-bold ${meta.bg} ${meta.border} ${meta.text}`}
-                >
-                  {meta.emoji} {i}
-                </span>
-              );
-            })}
-          </div>
-        ) : null}
+        {person.bio && <p className="mt-5 text-sm text-muted-foreground">{person.bio}</p>}
+
+        <ProfileActivity
+          userId={person.id}
+          own={session?.user.id === person.id}
+          interests={person.interests}
+          canSeeProgress={person.share_progress || session?.user.id === person.id}
+        />
 
         <h2 className="mt-8 text-sm font-black uppercase tracking-wider text-muted-foreground">
-          Publications
+          {t("person.posts")}
         </h2>
         <div className="mt-3 space-y-2">
           {contents.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucune publication.</p>
+            <p className="text-sm text-muted-foreground">{t("person.posts.empty")}</p>
           )}
           {contents.map((c) => (
             <div

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import { InfinityMark, Wordmark } from "@/components/brand/InfinityMark";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -97,8 +97,7 @@ function AuthPage() {
       <div className="pointer-events-none absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-primary/20 blur-[120px]" />
       <div className="relative w-full max-w-sm">
         <div className="flex flex-col items-center">
-          <InfinityMark className="h-14 w-14" glow />
-          <Wordmark />
+          <BrandLogo className="h-16" />
           <p className="mt-2 text-[11px] font-semibold tracking-[0.3em] text-muted-foreground">
             {t("brand.tagline")}
           </p>

@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LOCALES, useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
+import { AvatarPicker } from "@/components/profile/AvatarPicker";
+import { ProfileActivity } from "@/components/profile/ProfileActivity";
 import { getLevel, levelBgClass, levelProgress } from "@/lib/xp";
 import { categoryMeta } from "@/lib/categories";
 
@@ -142,9 +144,7 @@ function ProfilePage() {
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
         <header className="flex items-start gap-4">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-brand text-3xl font-black text-primary-foreground">
-            {profile.username.charAt(0).toUpperCase()}
-          </div>
+          <AvatarPicker profile={profile} onUpdated={refreshProfile} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl">@{profile.username}</h1>
             <span
@@ -184,6 +184,8 @@ function ProfilePage() {
             />
           </div>
         </section>
+
+        <ProfileActivity userId={profile.id} own interests={profile.interests} />
 
         <Section title={t("profile.missions")} icon={<Settings className="h-4 w-4" />}>
           {missions.length === 0 && (

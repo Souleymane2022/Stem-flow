@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { InfinityMark, Wordmark } from "@/components/brand/InfinityMark";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
@@ -53,8 +53,7 @@ function SplashPage() {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 12 }}
       >
-        <InfinityMark className="h-20 w-20" glow />
-        <Wordmark animated />
+        <BrandLogo className="h-24 md:h-28" />
       </motion.div>
 
       <motion.p

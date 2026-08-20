@@ -47,6 +47,7 @@ Dans **Settings → Environment Variables**, pour les environnements *Production
 | `AI_BASE_URL` | non | Racine de l'API compatible OpenAI. Défaut : `https://openrouter.ai/api/v1` |
 | `AI_MODEL` | non | Modèle à utiliser. Défaut : `google/gemini-2.0-flash-exp:free` |
 | `YOUTUBE_API_KEY` | non | Import de playlists en cours (`courses.functions.ts`). Sans elle, seuls les cours de démarrage sont disponibles |
+| `VITE_SITE_URL` | non | Racine absolue du site (`https://mon-projet.vercel.app`), utilisée pour l'aperçu `og:image` partagé sur les réseaux. Sans elle, le chemin reste relatif et certains robots ne le résolvent pas |
 
 > [!IMPORTANT]
 > Ces variables sont **obligatoires**. Le dépôt contient bien un `.env` avec les
@@ -91,9 +92,16 @@ supabase link --project-ref <votre-ref>
 supabase db push
 ```
 
-Les migrations (`supabase/migrations/`) créent 18 tables, 48 politiques RLS,
-6 fonctions, 5 triggers, et insèrent les données de départ (salons, badges,
-contenus et quiz).
+Les migrations (`supabase/migrations/`) créent l'ensemble du schéma — tables,
+politiques RLS, fonctions et triggers — et insèrent les données de départ
+(salons, badges, contenus et quiz).
+
+La dernière, `20260817060000_avatars_storage.sql`, crée le compartiment de
+stockage `avatars` (2 Mo, images uniquement) et ses politiques : lecture
+publique, écriture cloisonnée par utilisateur. Sans elle, le bouton photo du
+profil répond « Bucket not found ». Elle touche au schéma `storage`, que
+`supabase db push` gère comme les autres ; à défaut, collez-la dans
+*SQL Editor*.
 
 ## 4. URL de redirection Supabase
 

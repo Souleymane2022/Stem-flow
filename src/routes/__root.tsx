@@ -96,6 +96,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+/**
+ * Racine absolue du site, pour l'aperçu partagé sur les réseaux : leurs robots
+ * n'acceptent pas toujours un chemin relatif. Vide en développement, où
+ * l'aperçu n'a pas d'intérêt ; à renseigner dans Vercel via VITE_SITE_URL.
+ */
+const SITE_URL = (import.meta.env["VITE_SITE_URL"] ?? "").replace(/\/$/, "");
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -122,16 +129,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bd1f1404-28b5-4547-8dff-3babed020f9c/id-preview-453ba280--4684c94a-43c0-43fd-8944-e750f112c2bb.lovable.app-1785881862154.png",
-      },
+      { property: "og:image", content: `${SITE_URL}/logo.jpg` },
+      { property: "og:image:width", content: "512" },
+      { property: "og:image:height", content: "512" },
+      { property: "og:image:alt", content: "STEMFLOW" },
+      { name: "twitter:image", content: `${SITE_URL}/logo.jpg` },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -142,6 +144,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       // Le fil monte des lecteurs YouTube : ouvrir les connexions au plus tôt
       // évite un aller-retour DNS/TLS au moment de la première lecture.
       { rel: "preconnect", href: "https://www.youtube.com" },

@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 type Props = {
   className?: string;
   glow?: boolean;
@@ -30,39 +28,6 @@ export function InfinityGlyph({ className = "" }: { className?: string }) {
   return (
     <span className={`text-gradient-brand font-black leading-none ${className}`} aria-hidden="true">
       ∞
-    </span>
-  );
-}
-
-export function Wordmark({ animated = false }: { animated?: boolean }) {
-  const letters = "STEMFLOW".split("");
-  const [shown, setShown] = useState(animated ? 0 : letters.length);
-
-  useEffect(() => {
-    if (!animated) return;
-    let i = 0;
-    const id = setInterval(() => {
-      i += 1;
-      setShown(i);
-      if (i >= letters.length) clearInterval(id);
-    }, 60);
-    return () => clearInterval(id);
-  }, [animated, letters.length]);
-
-  return (
-    <span className="flex text-3xl font-black tracking-[-0.04em]">
-      {letters.map((letter, i) => (
-        <span
-          key={`${letter}-${i}`}
-          className="transition-all duration-300"
-          style={{
-            opacity: i < shown ? 1 : 0,
-            transform: i < shown ? "translateY(0)" : "translateY(6px)",
-          }}
-        >
-          {letter}
-        </span>
-      ))}
     </span>
   );
 }
