@@ -12,6 +12,7 @@ import { QuizModal } from "@/components/feed/QuizModal";
 import { ArticleSheet } from "@/components/feed/ArticleSheet";
 import type { YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { CATEGORIES } from "@/lib/categories";
+import { isAdminEmail } from "@/lib/admins";
 import { XP_REWARDS } from "@/lib/xp";
 
 export const Route = createFileRoute("/feed")({
@@ -154,6 +155,29 @@ function FeedPage() {
       alive = false;
     };
   }, [session]);
+
+  /**
+   * Retire une vidéo du fil. Réservé aux comptes autorisés : la politique
+   * `contents_delete_own` ne permet de supprimer que ses propres publications,
+   * la fonction en base vérifie la liste blanche avant d'effacer.
+   */
+  const removeContent = useCallback(
+    async (id: string) => {
+      if (!window.confirm(t("admin.delete.confirm"))) return;
+      const { data, error } = await supabase.rpc("delete_content", { p_content_id: id });
+      if (error) {
+        console.error("[fil] suppression impossible", error);
+        toast.error(t("admin.delete.failed", { message: error.message }));
+        return;
+      }
+      // La ligne part de l'écran dans les deux cas : si elle avait déjà
+      // disparu, la garder afficherait un contenu qui n'existe plus.
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      players.current.delete(id);
+      toast.success(data ? t("admin.delete.done") : t("admin.delete.missing"));
+    },
+    [t],
+  );
 
   // Une vidéo du fil issue d'un cours crédite la progression de ce cours.
   // Sans cela, la même leçon serait à revoir dans l'onglet Cours pour compter,
@@ -389,6 +413,11 @@ function FeedPage() {
                 mountPlayer={Math.abs(index - active) <= PLAYER_WINDOW}
                 active={index === active}
                 onToggleMute={toggleMute}
+                onDelete={
+                  isAdminEmail(session?.user.email)
+                    ? () => void removeContent(content.id)
+                    : undefined
+                }
                 onPlayerReady={(player) => {
                   players.current.set(content.id, player);
                   // Le lecteur peut arriver après le passage de l'observer : si ce

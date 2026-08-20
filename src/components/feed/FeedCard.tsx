@@ -11,6 +11,7 @@ import {
   Volume2,
   VolumeX,
   GraduationCap,
+  Trash2,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
@@ -59,6 +60,8 @@ type Props = {
   /** Slide occupant l'écran. L'ouverture de marque n'a de sens que là. */
   active?: boolean;
   onToggleMute?: () => void;
+  /** Fourni aux seuls comptes autorisés : retire la vidéo du fil. */
+  onDelete?: (() => void) | undefined;
   onPlayerReady?: (player: YouTubePlayerLike) => void;
   onPlayerDestroy?: () => void;
   onToggleLike: () => void;
@@ -81,6 +84,7 @@ export function FeedCard({
   mountPlayer = false,
   active = false,
   onToggleMute,
+  onDelete,
   onPlayerReady,
   onPlayerDestroy,
   onToggleLike,
@@ -292,6 +296,20 @@ export function FeedCard({
           <InfinityGlyph className="text-2xl" />
         </ActionButton>
       </div>
+
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          aria-label={t("admin.delete.action")}
+          title={t("admin.delete.action")}
+          className="absolute end-16 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-background/70 text-destructive backdrop-blur transition-transform active:scale-90 md:end-20"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      )}
 
       {content.content_type === "video" && onToggleMute && (
         <button

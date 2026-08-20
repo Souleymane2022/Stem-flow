@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Import, ListVideo, Loader2, ShieldCheck } from "lucide-react";
+import { Import, ListVideo, Loader2, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
@@ -11,6 +12,19 @@ import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
 import { importYoutubePlaylist } from "@/lib/courses.functions";
 import { addVideosToFeed } from "@/lib/feed.functions";
+import { youtubeThumbnail } from "@/utils/youtube";
+
+type FeedVideo = {
+  id: string;
+  title: string;
+  category: string;
+  video_id: string | null;
+  author_name: string | null;
+  created_at: string;
+};
+
+/** Assez pour retrouver ce qu'on vient de publier, sans charger tout le fil. */
+const MODERATION_LIMIT = 40;
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -38,10 +52,45 @@ function AdminPage() {
   const [feedCount, setFeedCount] = useState(3);
   const [importing, setImporting] = useState(false);
 
+  const [feedVideos, setFeedVideos] = useState<FeedVideo[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
   const [videoUrls, setVideoUrls] = useState("");
   const [videoCategory, setVideoCategory] = useState<string>(CATEGORIES[0]);
   const [videoDifficulty, setVideoDifficulty] = useState("debutant");
   const [adding, setAdding] = useState(false);
+
+  const loadFeedVideos = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("contents")
+      .select("id,title,category,video_id,author_name,created_at")
+      .eq("content_type", "video")
+      .order("created_at", { ascending: false })
+      .limit(MODERATION_LIMIT);
+    if (error) {
+      console.error("[admin] liste des vidéos illisible", error);
+      return;
+    }
+    setFeedVideos((data as FeedVideo[]) ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (isAdminEmail(user?.email)) void loadFeedVideos();
+  }, [user?.email, loadFeedVideos]);
+
+  const removeVideo = async (video: FeedVideo) => {
+    if (!window.confirm(t("admin.delete.confirm"))) return;
+    setDeleting(video.id);
+    const { data, error } = await supabase.rpc("delete_content", { p_content_id: video.id });
+    setDeleting(null);
+    if (error) {
+      console.error("[admin] suppression impossible", error);
+      toast.error(t("admin.delete.failed", { message: error.message }));
+      return;
+    }
+    setFeedVideos((prev) => prev.filter((v) => v.id !== video.id));
+    toast.success(data ? t("admin.delete.done") : t("admin.delete.missing"));
+  };
 
   const submitImport = async () => {
     if (!url.trim()) return;
@@ -82,6 +131,7 @@ function AdminPage() {
         }),
       );
       setVideoUrls("");
+      await loadFeedVideos();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ajout impossible");
     } finally {
@@ -235,6 +285,56 @@ function AdminPage() {
             {adding && <Loader2 className="h-4 w-4 animate-spin" />}
             {adding ? t("admin.videos.busy") : t("admin.videos.submit")}
           </button>
+        </section>
+
+        {/* --------------------------------------------- modération */}
+        <section className="mt-4 rounded-2xl border border-border bg-surface p-4">
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <Trash2 className="h-4 w-4 text-destructive" /> {t("admin.delete.title")}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">{t("admin.delete.hint")}</p>
+
+          {feedVideos.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">{t("admin.delete.empty")}</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {feedVideos.map((video) => (
+                <li
+                  key={video.id}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-2"
+                >
+                  {video.video_id ? (
+                    <img
+                      src={youtubeThumbnail(video.video_id)}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="h-11 w-20 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="h-11 w-20 shrink-0 rounded-lg bg-background" />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">{video.title}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {video.category} · @{video.author_name ?? "stemflow"} ·{" "}
+                      {new Date(video.created_at).toLocaleDateString()}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void removeVideo(video)}
+                    disabled={deleting === video.id}
+                    aria-label={t("admin.delete.action")}
+                    title={t("admin.delete.action")}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-destructive/40 bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </AppShell>

@@ -516,19 +516,19 @@ export type Database = {
       };
       app_admins: {
         Row: {
-          added_at: string
-          email: string
-        }
+          added_at: string;
+          email: string;
+        };
         Insert: {
-          added_at?: string
-          email: string
-        }
+          added_at?: string;
+          email: string;
+        };
         Update: {
-          added_at?: string
-          email?: string
-        }
-        Relationships: []
-      }
+          added_at?: string;
+          email?: string;
+        };
+        Relationships: [];
+      };
       contents: {
         Row: {
           author_avatar: string | null;
@@ -1120,10 +1120,16 @@ export type Database = {
         };
         Returns: Json;
       };
+      delete_content: {
+        Args: {
+          p_content_id: string;
+        };
+        Returns: boolean;
+      };
       is_app_admin: {
-        Args: Record<string, never>
-        Returns: boolean
-      }
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       set_lesson_in_feed: {
         Args: {
           p_lesson_id: string;
