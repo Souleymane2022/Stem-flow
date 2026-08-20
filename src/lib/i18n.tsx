@@ -209,6 +209,9 @@ const fr = {
   "admin.delete.empty": "Aucune vidéo dans le fil pour l'instant.",
   "db.updateNeeded":
     "La mise à jour de la base n'a pas encore été appliquée. Exécute MISE_A_JOUR.sql dans le SQL Editor de Supabase.",
+  "trending.title": "Les plus regardées",
+  "trending.subtitle": "Ce que la communauté regarde le plus en ce moment.",
+  "trending.openHint": "Glisse vers la droite pour voir qui a publié.",
 
   "certificate.earned": "Certificat obtenu 🎓",
   "certificate.view": "Voir mon certificat",
@@ -461,6 +464,9 @@ const en: Dictionary = {
   "admin.delete.empty": "No video in the feed yet.",
   "db.updateNeeded":
     "The database update has not been applied yet. Run MISE_A_JOUR.sql in the Supabase SQL Editor.",
+  "trending.title": "Most watched",
+  "trending.subtitle": "What the community is watching right now.",
+  "trending.openHint": "Swipe right to see who posted it.",
 
   "certificate.earned": "Certificate earned 🎓",
   "certificate.view": "View my certificate",
@@ -709,6 +715,9 @@ const ar: Dictionary = {
   "admin.delete.empty": "لا يوجد فيديو في التدفّق بعد.",
   "db.updateNeeded":
     "لم يُطبَّق تحديث قاعدة البيانات بعد. نفّذ ملف MISE_A_JOUR.sql في محرّر SQL في Supabase.",
+  "trending.title": "الأكثر مشاهدة",
+  "trending.subtitle": "ما يشاهده المجتمع أكثر من غيره الآن.",
+  "trending.openHint": "اسحب يمينًا لمعرفة من نشره.",
 
   "certificate.earned": "تم الحصول على الشهادة 🎓",
   "certificate.view": "عرض شهادتي",

@@ -17,6 +17,15 @@ import { explainDbError } from "@/lib/db-errors";
 import { XP_REWARDS } from "@/lib/xp";
 
 export const Route = createFileRoute("/feed")({
+  /**
+   * `?start=<id>` ouvre le fil sur une vidéo précise : c'est ce que suivent
+   * les vignettes des tendances et les résultats de recherche, qui menaient
+   * jusqu'ici au fil « quelque part », sans rapport avec ce qu'on avait cliqué.
+   */
+  validateSearch: (search: Record<string, unknown>): { start?: string } => {
+    const start = search["start"];
+    return typeof start === "string" && start.length > 0 ? { start } : {};
+  },
   head: () => ({
     meta: [
       { title: "Le fil STEM — STEMFLOW" },
@@ -65,6 +74,12 @@ const PREFETCH_FROM_END = 3;
 const PREBUFFER_MS = 900;
 /** Délai laissé à la vidéo en cours avant d'amorcer la suivante. */
 const PREBUFFER_DELAY_MS = 1200;
+/** Amplitude minimale d'un glissement horizontal pour être pris pour tel. */
+const SWIPE_MIN_PX = 70;
+/** Au-delà, ce n'est plus un geste vif mais un doigt qui traîne. */
+const SWIPE_MAX_MS = 700;
+/** Bande gauche réservée au geste « retour » du navigateur. */
+const EDGE_GUARD_PX = 24;
 
 /** Sentinelle du filtre « tous contenus », distincte des noms de catégorie. */
 const FOR_YOU = "__for_you__";
@@ -100,6 +115,7 @@ function spreadCategories(rows: ContentRow[]): ContentRow[] {
 
 function FeedPage() {
   const navigate = useNavigate();
+  const { start } = Route.useSearch();
   const { session, profile, loading, awardXp } = useAuth();
   const pushXp = useXpPopup();
   const { t } = useI18n();
@@ -187,6 +203,25 @@ function FeedPage() {
       }
       if (!alive) return;
       rows = spreadCategories(rows);
+
+      // Vidéo demandée par `?start=` : elle passe devant. Si le classement ne
+      // l'a pas retenue — déjà vue, ou hors des quarante premières — on va la
+      // chercher, sinon le lien ne mènerait pas à ce qu'il annonce.
+      if (start) {
+        const known = rows.find((r) => r.id === start);
+        if (known) {
+          rows = [known, ...rows.filter((r) => r.id !== start)];
+        } else {
+          const { data: one } = await supabase
+            .from("contents")
+            .select(EMBED)
+            .eq("id", start)
+            .maybeSingle();
+          if (!alive) return;
+          if (one) rows = [one as unknown as ContentRow, ...rows];
+        }
+      }
+
       setItems(rows);
       setFetching(false);
 
@@ -209,7 +244,52 @@ function FeedPage() {
     return () => {
       alive = false;
     };
-  }, [filter, profile?.interests]);
+  }, [filter, profile?.interests, start]);
+
+  /**
+   * Glissement horizontal sur le fil : on ouvre la fiche de qui a publié.
+   *
+   * Les contenus livrés avec l'application n'ont pas d'auteur inscrit ; pour
+   * eux le geste mène au cours d'origine, ce qui reste la réponse à « d'où
+   * vient cette vidéo ». Sans l'un ni l'autre, il ne se passe rien plutôt que
+   * d'ouvrir une page vide.
+   */
+  const touchStart = useRef<{ x: number; y: number; at: number } | null>(null);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    // Un départ collé au bord gauche appartient au geste « retour » du
+    // navigateur : on le laisse tranquille.
+    if (touch.clientX < EDGE_GUARD_PX) return;
+    touchStart.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+  }, []);
+
+  const onTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const from = touchStart.current;
+      touchStart.current = null;
+      if (!from) return;
+      // Un geste parti d'un bouton lui appartient.
+      if ((e.target as HTMLElement).closest("button, a, input, textarea")) return;
+
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - from.x;
+      const dy = touch.clientY - from.y;
+      if (Date.now() - from.at > SWIPE_MAX_MS) return;
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 2) return;
+
+      const current = items[active];
+      if (!current) return;
+      if (current.author_id) {
+        void navigate({ to: "/profile/$id", params: { id: current.author_id } });
+      } else if (current.source_course_id) {
+        void navigate({ to: "/courses/$id", params: { id: current.source_course_id } });
+      }
+    },
+    [items, active, navigate],
+  );
 
   // Le fil ne doit pas buter sur une fin. À l'approche de la dernière vidéo,
   // on redemande un classement avec une autre graine : les vidéos déjà vues
@@ -510,7 +590,12 @@ function FeedPage() {
           ))}
         </div>
 
-        <div ref={containerRef} className="snap-feed h-full">
+        <div
+          ref={containerRef}
+          className="snap-feed h-full"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {fetching && (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               {t("feed.loading")}

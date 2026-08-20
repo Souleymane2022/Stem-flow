@@ -4,6 +4,7 @@ import { Search as SearchIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
+import { TrendingBox } from "@/components/feed/TrendingBox";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -94,6 +95,8 @@ function SearchPage() {
           ))}
         </div>
 
+        {!query.trim() && <TrendingBox />}
+
         <div className="mt-6 space-y-2.5">
           {loading && <p className="text-sm text-muted-foreground">Recherche…</p>}
           {!loading && rows.length === 0 && (
@@ -105,6 +108,7 @@ function SearchPage() {
               <Link
                 key={row.id}
                 to="/feed"
+                search={{ start: row.id }}
                 className="flex items-start gap-3 rounded-2xl border border-border bg-surface-2 p-4 transition-colors hover:border-primary/40"
               >
                 <span className="text-2xl">{meta.emoji}</span>
