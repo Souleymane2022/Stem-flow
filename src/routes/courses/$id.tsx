@@ -10,6 +10,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { VideoPlayer, type YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { categoryMeta } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
+import { explainDbError } from "@/lib/db-errors";
 
 export const Route = createFileRoute("/courses/$id")({
   head: () => ({
@@ -215,7 +216,7 @@ function CoursePage() {
       setSwitching(null);
       if (error) {
         console.error("[cours] publication impossible", error);
-        toast.error(t("courses.feed.failed", { message: error.message }));
+        toast.error(t("courses.feed.failed", { message: explainDbError(error, t) }));
         return;
       }
       setInFeed((prev) => {
@@ -255,7 +256,7 @@ function CoursePage() {
         // La cause se répéterait à l'identique sur les suivantes : inutile
         // d'enchaîner des appels voués au même refus.
         console.error("[cours] publication groupée interrompue", error);
-        failure = error.message;
+        failure = explainDbError(error, t);
         break;
       }
       done += 1;

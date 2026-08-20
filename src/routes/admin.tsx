@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
 import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
+import { explainDbError } from "@/lib/db-errors";
 import { importYoutubePlaylist } from "@/lib/courses.functions";
 import { addVideosToFeed } from "@/lib/feed.functions";
 import { youtubeThumbnail } from "@/utils/youtube";
@@ -85,7 +86,7 @@ function AdminPage() {
     setDeleting(null);
     if (error) {
       console.error("[admin] suppression impossible", error);
-      toast.error(t("admin.delete.failed", { message: error.message }));
+      toast.error(t("admin.delete.failed", { message: explainDbError(error, t) }));
       return;
     }
     setFeedVideos((prev) => prev.filter((v) => v.id !== video.id));
@@ -102,7 +103,11 @@ function AdminPage() {
       if (result.publishError) {
         // L'import a réussi, la mise en avant non : le dire, sinon on cherche
         // la cause dans le fil au lieu de la base.
-        toast.error(t("courses.feed.failed", { message: result.publishError }));
+        toast.error(
+          t("courses.feed.failed", {
+            message: explainDbError({ message: result.publishError }, t),
+          }),
+        );
       } else {
         toast.success(
           result.alreadyExisted

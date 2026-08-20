@@ -207,6 +207,8 @@ const fr = {
   "admin.delete.missing": "Cette vidéo avait déjà été supprimée.",
   "admin.delete.failed": "Suppression impossible : {message}",
   "admin.delete.empty": "Aucune vidéo dans le fil pour l'instant.",
+  "db.updateNeeded":
+    "La mise à jour de la base n'a pas encore été appliquée. Exécute MISE_A_JOUR.sql dans le SQL Editor de Supabase.",
 
   "certificate.earned": "Certificat obtenu 🎓",
   "certificate.view": "Voir mon certificat",
@@ -457,6 +459,8 @@ const en: Dictionary = {
   "admin.delete.missing": "This video was already deleted.",
   "admin.delete.failed": "Could not delete: {message}",
   "admin.delete.empty": "No video in the feed yet.",
+  "db.updateNeeded":
+    "The database update has not been applied yet. Run MISE_A_JOUR.sql in the Supabase SQL Editor.",
 
   "certificate.earned": "Certificate earned 🎓",
   "certificate.view": "View my certificate",
@@ -703,6 +707,8 @@ const ar: Dictionary = {
   "admin.delete.missing": "سبق حذف هذا الفيديو.",
   "admin.delete.failed": "تعذّر الحذف: {message}",
   "admin.delete.empty": "لا يوجد فيديو في التدفّق بعد.",
+  "db.updateNeeded":
+    "لم يُطبَّق تحديث قاعدة البيانات بعد. نفّذ ملف MISE_A_JOUR.sql في محرّر SQL في Supabase.",
 
   "certificate.earned": "تم الحصول على الشهادة 🎓",
   "certificate.view": "عرض شهادتي",

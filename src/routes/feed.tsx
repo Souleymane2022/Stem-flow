@@ -13,6 +13,7 @@ import { ArticleSheet } from "@/components/feed/ArticleSheet";
 import type { YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { CATEGORIES } from "@/lib/categories";
 import { isAdminEmail } from "@/lib/admins";
+import { explainDbError } from "@/lib/db-errors";
 import { XP_REWARDS } from "@/lib/xp";
 
 export const Route = createFileRoute("/feed")({
@@ -167,7 +168,7 @@ function FeedPage() {
       const { data, error } = await supabase.rpc("delete_content", { p_content_id: id });
       if (error) {
         console.error("[fil] suppression impossible", error);
-        toast.error(t("admin.delete.failed", { message: error.message }));
+        toast.error(t("admin.delete.failed", { message: explainDbError(error, t) }));
         return;
       }
       // La ligne part de l'écran dans les deux cas : si elle avait déjà
