@@ -663,7 +663,17 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-function detectInitialLocale(): Locale {
+/**
+ * Langue préférée du visiteur, lue au montage seulement.
+ *
+ * Elle ne peut pas servir d'état initial : le rendu serveur ne connaît ni le
+ * stockage local ni la langue du navigateur, il produit donc toujours du
+ * français. Un client anglophone qui démarrait directement en anglais rendait
+ * un arbre différent de celui reçu, et React jetait tout le rendu serveur pour
+ * le refaire — un écran blanc de plus au chargement. On part donc du français,
+ * comme le serveur, puis on bascule juste après l'hydratation.
+ */
+function detectPreferredLocale(): Locale {
   if (typeof window === "undefined") return "fr";
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (isLocale(stored)) return stored;
@@ -673,7 +683,12 @@ function detectInitialLocale(): Locale {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const { session, profile } = useAuth();
-  const [locale, setLocaleState] = useState<Locale>(detectInitialLocale);
+  const [locale, setLocaleState] = useState<Locale>("fr");
+
+  useEffect(() => {
+    const preferred = detectPreferredLocale();
+    if (preferred !== "fr") setLocaleState(preferred);
+  }, []);
 
   // Le profil fait autorité au premier chargement d'une session : la préférence
   // enregistrée pendant l'onboarding suit l'utilisateur d'un appareil à l'autre.

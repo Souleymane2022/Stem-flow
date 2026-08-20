@@ -14,7 +14,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { VideoPlayer, type YouTubePlayerLike } from "./VideoPlayer";
 import { categoryMeta, difficultyLabel } from "@/lib/categories";
-import { InfinityGlyph } from "@/components/brand/InfinityMark";
+import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { youtubeThumbnail } from "@/utils/youtube";
 import { BrandSplash } from "@/components/brand/BrandSplash";
 import { useI18n } from "@/lib/i18n";

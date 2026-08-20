@@ -13,7 +13,8 @@ import {
   LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { InfinityGlyph, InfinityMark } from "@/components/brand/InfinityMark";
+import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { getLevel, levelProgress } from "@/lib/xp";
@@ -116,8 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="fixed inset-y-0 start-0 z-40 hidden w-60 flex-col border-e border-border bg-surface md:flex">
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
           <Link to="/feed" className="flex items-center gap-2">
-            <InfinityMark className="h-9 w-9" glow />
-            <span className="text-xl font-black tracking-[-0.04em]">STEMFLOW</span>
+            <BrandLogo className="h-10" />
           </Link>
           <p className="mt-1 label-xs">{t("brand.tagline")}</p>
 
@@ -190,8 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/90 px-4 py-3 backdrop-blur md:hidden">
         <Link to="/feed" className="flex min-w-0 items-center gap-2">
-          <InfinityMark className="h-7 w-7 shrink-0" />
-          <span className="truncate text-lg font-black tracking-[-0.04em]">STEMFLOW</span>
+          <BrandLogo className="h-7 shrink-0" />
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <span className="flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-bold">

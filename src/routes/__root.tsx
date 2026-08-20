@@ -129,11 +129,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Rejoins STEMFLOW : un fil vertical de vidéos, d'articles et de quiz STEM en français, avec XP, badges et salons de discussion.",
       },
-      { property: "og:image", content: `${SITE_URL}/logo.jpg` },
-      { property: "og:image:width", content: "512" },
-      { property: "og:image:height", content: "512" },
+      { property: "og:image", content: `${SITE_URL}/og-card.jpg` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { property: "og:image:alt", content: "STEMFLOW" },
-      { name: "twitter:image", content: `${SITE_URL}/logo.jpg` },
+      { name: "twitter:image", content: `${SITE_URL}/og-card.jpg` },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

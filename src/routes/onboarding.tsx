@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LOCALES, useI18n, type Locale } from "@/lib/i18n";
 import { CATEGORIES, CATEGORY_META } from "@/lib/categories";
-import { InfinityMark } from "@/components/brand/InfinityMark";
+import { BrandMark } from "@/components/brand/BrandLogo";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -93,7 +93,7 @@ function OnboardingPage() {
     <main className="flex min-h-dvh flex-col bg-background px-6 py-8">
       <div className="mx-auto w-full max-w-lg">
         <div className="flex items-center gap-3">
-          <InfinityMark className="h-8 w-8" />
+          <BrandMark className="h-8" />
           <div className="flex flex-1 gap-1.5">
             {steps.map((s, i) => (
               <div key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">

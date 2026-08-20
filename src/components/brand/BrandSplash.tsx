@@ -55,7 +55,7 @@ export function BrandSplash({ onDone }: { onDone: () => void }) {
         transition={{ duration: 0.7, ease: "easeOut" }}
         className="relative flex flex-col items-center px-8 text-center"
       >
-        <BrandLogo className="h-24 md:h-28" padding="px-6 py-5" />
+        <BrandLogo className="h-20 md:h-24" />
 
         <motion.p
           initial={{ opacity: 0 }}

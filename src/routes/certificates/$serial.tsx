@@ -4,7 +4,7 @@ import { Award, Printer } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { InfinityMark } from "@/components/brand/InfinityMark";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export const Route = createFileRoute("/certificates/$serial")({
   head: () => ({
@@ -83,8 +83,7 @@ function CertificatePage() {
           série sans compte, d'où l'absence de coquille applicative. */}
       <article className="w-full max-w-2xl rounded-3xl border border-primary/40 bg-surface p-8 text-center shadow-lg md:p-12 print:border-black print:shadow-none">
         <div className="flex items-center justify-center gap-2">
-          <InfinityMark className="h-10 w-10" glow />
-          <span className="text-2xl font-black tracking-[-0.04em]">STEMFLOW</span>
+          <BrandLogo className="h-11" />
         </div>
 
         <Award className="mx-auto mt-6 h-12 w-12 text-primary" />
