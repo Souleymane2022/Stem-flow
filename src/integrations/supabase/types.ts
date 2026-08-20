@@ -556,6 +556,101 @@ export type Database = {
         };
         Relationships: [];
       };
+      live_sessions: {
+        Row: {
+          attendee_count: number;
+          cover_url: string | null;
+          created_at: string;
+          description: string | null;
+          duration_minutes: number;
+          host_id: string | null;
+          host_name: string | null;
+          id: string;
+          kind: string;
+          room_id: string;
+          starts_at: string;
+          status: string;
+          title: string;
+          updated_at: string;
+          video_id: string | null;
+        };
+        Insert: {
+          attendee_count?: number;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          host_id?: string | null;
+          host_name?: string | null;
+          id?: string;
+          kind?: string;
+          room_id: string;
+          starts_at: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+          video_id?: string | null;
+        };
+        Update: {
+          attendee_count?: number;
+          cover_url?: string | null;
+          created_at?: string;
+          description?: string | null;
+          duration_minutes?: number;
+          host_id?: string | null;
+          host_name?: string | null;
+          id?: string;
+          kind?: string;
+          room_id?: string;
+          starts_at?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+          video_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      live_attendees: {
+        Row: { registered_at: string; session_id: string; user_id: string };
+        Insert: { registered_at?: string; session_id: string; user_id: string };
+        Update: { registered_at?: string; session_id?: string; user_id?: string };
+        Relationships: [];
+      };
+      live_messages: {
+        Row: {
+          created_at: string;
+          id: string;
+          session_id: string;
+          text: string;
+          user_id: string;
+          username: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          session_id: string;
+          text: string;
+          user_id: string;
+          username?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          session_id?: string;
+          text?: string;
+          user_id?: string;
+          username?: string | null;
+        };
+        Relationships: [];
+      };
       contents: {
         Row: {
           author_avatar: string | null;
@@ -1196,6 +1291,37 @@ export type Database = {
           p_course_id: string;
           p_published: boolean;
         };
+        Returns: boolean;
+      };
+      create_live_session: {
+        Args: {
+          p_room_id: string;
+          p_title: string;
+          p_kind?: string;
+          p_description?: string | null;
+          p_video_id?: string | null;
+          p_starts_at?: string;
+          p_duration?: number;
+        };
+        Returns: string;
+      };
+      update_live_session: {
+        Args: {
+          p_session_id: string;
+          p_title?: string | null;
+          p_description?: string | null;
+          p_video_id?: string | null;
+          p_starts_at?: string | null;
+          p_duration?: number | null;
+        };
+        Returns: boolean;
+      };
+      set_live_status: {
+        Args: { p_session_id: string; p_status: string };
+        Returns: number;
+      };
+      delete_live_message: {
+        Args: { p_message_id: string };
         Returns: boolean;
       };
       is_app_admin: {

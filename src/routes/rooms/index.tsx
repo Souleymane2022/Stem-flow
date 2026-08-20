@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users } from "lucide-react";
+import { Radio, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { SkeletonList } from "@/components/common/Skeleton";
 import { PageHeader } from "@/components/common/PageHeader";
+import { LiveAgenda } from "@/components/live/LiveAgenda";
 import { useI18n } from "@/lib/i18n";
 import { categoryMeta } from "@/lib/categories";
 
@@ -64,6 +65,15 @@ function RoomsPage() {
           title={t("rooms.title")}
           subtitle={t("rooms.subtitle")}
         />
+
+        {/* L'agenda passe avant la liste des salons : c'est ce qu'on vient
+            chercher quand une séance approche. */}
+        <section className="mt-6">
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <Radio className="h-4 w-4 text-destructive" /> {t("live.agenda")}
+          </h2>
+          <LiveAgenda />
+        </section>
 
         {loading && (
           <div className="mt-6">

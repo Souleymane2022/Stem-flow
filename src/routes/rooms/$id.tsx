@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { useI18n } from "@/lib/i18n";
+import { RoomLive } from "@/components/live/RoomLive";
 import { categoryMeta } from "@/lib/categories";
 
 export const Route = createFileRoute("/rooms/$id")({
@@ -154,6 +155,8 @@ function RoomPage() {
             {joined ? t("rooms.leave") : t("rooms.join")}
           </button>
         </div>
+
+        <RoomLive roomId={id} />
 
         <div className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-4">
           {posts.length === 0 && (

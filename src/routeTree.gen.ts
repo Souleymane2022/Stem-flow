@@ -25,6 +25,7 @@ import { Route as CompetitionsIndexRouteImport } from './routes/competitions/ind
 import { Route as CompetitionsIdRouteImport } from './routes/competitions/$id'
 import { Route as CoursesIndexRouteImport } from './routes/courses/index'
 import { Route as CoursesIdRouteImport } from './routes/courses/$id'
+import { Route as LiveIdRouteImport } from './routes/live/$id'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as ProfileIdRouteImport } from './routes/profile/$id'
 import { Route as RoomsIndexRouteImport } from './routes/rooms/index'
@@ -110,6 +111,11 @@ const CoursesIdRoute = CoursesIdRouteImport.update({
   path: '/courses/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveIdRoute = LiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/live/$id': typeof LiveIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions/': typeof CompetitionsIndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/live/$id': typeof LiveIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions': typeof CompetitionsIndexRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/certificates/$serial': typeof CertificatesSerialRoute
   '/competitions/$id': typeof CompetitionsIdRoute
   '/courses/$id': typeof CoursesIdRoute
+  '/live/$id': typeof LiveIdRoute
   '/profile/$id': typeof ProfileIdRoute
   '/rooms/$id': typeof RoomsIdRoute
   '/competitions/': typeof CompetitionsIndexRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/certificates/$serial'
     | '/competitions/$id'
     | '/courses/$id'
+    | '/live/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions/'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/certificates/$serial'
     | '/competitions/$id'
     | '/courses/$id'
+    | '/live/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/certificates/$serial'
     | '/competitions/$id'
     | '/courses/$id'
+    | '/live/$id'
     | '/profile/$id'
     | '/rooms/$id'
     | '/competitions/'
@@ -282,6 +294,7 @@ export interface RootRouteChildren {
   CertificatesSerialRoute: typeof CertificatesSerialRoute
   CompetitionsIdRoute: typeof CompetitionsIdRoute
   CoursesIdRoute: typeof CoursesIdRoute
+  LiveIdRoute: typeof LiveIdRoute
   ProfileIdRoute: typeof ProfileIdRoute
   RoomsIdRoute: typeof RoomsIdRoute
   CompetitionsIndexRoute: typeof CompetitionsIndexRoute
@@ -404,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live/$id': {
+      id: '/live/$id'
+      path: '/live/$id'
+      fullPath: '/live/$id'
+      preLoaderRoute: typeof LiveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/': {
       id: '/profile/'
       path: '/profile'
@@ -450,6 +470,7 @@ const rootRouteChildren: RootRouteChildren = {
   CertificatesSerialRoute: CertificatesSerialRoute,
   CompetitionsIdRoute: CompetitionsIdRoute,
   CoursesIdRoute: CoursesIdRoute,
+  LiveIdRoute: LiveIdRoute,
   ProfileIdRoute: ProfileIdRoute,
   RoomsIdRoute: RoomsIdRoute,
   CompetitionsIndexRoute: CompetitionsIndexRoute,
