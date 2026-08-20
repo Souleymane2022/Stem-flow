@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
 import { VideoPlayer, type YouTubePlayerLike } from "@/components/feed/VideoPlayer";
 import { categoryMeta } from "@/lib/categories";
+import { isAdminEmail } from "@/lib/admins";
 
 export const Route = createFileRoute("/courses/$id")({
   head: () => ({
@@ -293,11 +294,9 @@ function CoursePage() {
 
   const meta = categoryMeta(course.category);
   const threshold = Math.round(course.passing_ratio * 100);
-  // Les cours livrés avec l'application n'ont pas d'auteur : sans cette
-  // ouverture, leur catalogue ne pourrait jamais rejoindre le fil.
-  const canPublish = Boolean(
-    session && (!course.created_by || course.created_by === session.user.id),
-  );
+  // Publier une leçon décide de ce que tout le fil voit : le geste est réservé
+  // aux comptes autorisés, et la base le vérifie de son côté.
+  const canPublish = isAdminEmail(session?.user.email);
 
   return (
     <AppShell>

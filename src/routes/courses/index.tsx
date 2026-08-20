@@ -1,15 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { GraduationCap, Import, Loader2, PlayCircle } from "lucide-react";
-import { toast } from "sonner";
+import { GraduationCap, Import, PlayCircle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/layout/AppShell";
-import { CATEGORIES, categoryMeta, difficultyLabel } from "@/lib/categories";
-import { importYoutubePlaylist } from "@/lib/courses.functions";
+import { categoryMeta, difficultyLabel } from "@/lib/categories";
+import { isAdminEmail } from "@/lib/admins";
 
 export const Route = createFileRoute("/courses/")({
   head: () => ({
@@ -39,22 +37,14 @@ type Course = {
 };
 
 function CoursesPage() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { t } = useI18n();
-  const runImport = useServerFn(importYoutubePlaylist);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [certificates, setCertificates] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  const [url, setUrl] = useState("");
-  const [category, setCategory] = useState<string>(CATEGORIES[0]);
-  const [difficulty, setDifficulty] = useState("debutant");
-  /** Nombre de leçons poussées dans le fil dès l'import. */
-  const [feedCount, setFeedCount] = useState(3);
-  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -100,30 +90,6 @@ function CoursesPage() {
     };
   }, [session]);
 
-  const submitImport = async () => {
-    if (!url.trim()) return;
-    setImporting(true);
-    try {
-      const result = await runImport({
-        data: { playlistUrl: url, category, difficulty, feedCount },
-      });
-      toast.success(
-        result.alreadyExisted
-          ? t("courses.import.exists")
-          : `${t("courses.import.done", { count: result.imported })} · ${t(
-              "courses.import.published",
-              { count: result.published },
-            )}`,
-      );
-      setUrl("");
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Import impossible");
-    } finally {
-      setImporting(false);
-    }
-  };
-
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-10">
@@ -132,67 +98,15 @@ function CoursesPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("courses.subtitle")}</p>
 
-        {session && (
-          <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
-            <h2 className="flex items-center gap-2 text-base font-bold">
-              <Import className="h-4 w-4 text-primary" /> {t("courses.import.title")}
-            </h2>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t("courses.import.placeholder")}
-              className="mt-3 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
-            />
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {categoryMeta(c).emoji} {c}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                className="rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm outline-none focus:border-primary"
-              >
-                {["debutant", "intermediaire", "avance"].map((d) => (
-                  <option key={d} value={d}>
-                    {difficultyLabel(d)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2.5">
-              <span className="min-w-0 text-sm font-semibold">{t("courses.import.feedCount")}</span>
-              <select
-                value={feedCount}
-                onChange={(e) => setFeedCount(Number(e.target.value))}
-                className="shrink-0 rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-primary"
-              >
-                {[0, 3, 5, 10].map((n) => (
-                  <option key={n} value={n}>
-                    {n === 0
-                      ? t("courses.import.feedNone")
-                      : t("courses.import.feedSome", { count: n })}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => void submitImport()}
-              disabled={importing || !url.trim()}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-brand py-2.5 text-sm font-bold text-background disabled:opacity-60"
-            >
-              {importing && <Loader2 className="h-4 w-4 animate-spin" />}
-              {importing ? t("courses.import.busy") : t("courses.import.submit")}
-            </button>
-          </div>
+        {/* L'import a quitté cette page : il décide de ce que tout le monde voit,
+            il est donc réservé aux comptes autorisés et vit dans son propre écran. */}
+        {isAdminEmail(user?.email) && (
+          <Link
+            to="/admin"
+            className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-bold hover:border-primary/40"
+          >
+            <Import className="h-4 w-4 text-primary" /> {t("admin.open")}
+          </Link>
         )}
 
         {loading && <p className="mt-6 text-sm text-muted-foreground">{t("courses.loading")}</p>}

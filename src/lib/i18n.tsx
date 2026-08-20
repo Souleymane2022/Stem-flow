@@ -182,6 +182,19 @@ const fr = {
   "courses.feed.removed": "Leçon retirée du fil",
   "courses.feed.failed": "Publication impossible : {message}",
 
+  "admin.title": "Espace catalogue",
+  "admin.subtitle": "Alimenter le fil et les cours. Réservé aux comptes autorisés.",
+  "admin.open": "Espace catalogue",
+  "admin.denied.title": "Accès réservé",
+  "admin.denied.body": "Ce compte n'est pas autorisé à alimenter le catalogue.",
+  "admin.denied.signIn": "Connecte-toi avec un compte autorisé.",
+  "admin.videos.title": "Ajouter des vidéos au fil",
+  "admin.videos.hint":
+    "Un lien par ligne. Les titres viennent de YouTube, les doublons et les vidéos non lisibles sont écartés.",
+  "admin.videos.submit": "Ajouter au fil",
+  "admin.videos.busy": "Ajout en cours…",
+  "admin.videos.done": "{added} ajoutées · {duplicates} déjà présentes · {rejected} écartées",
+
   "certificate.earned": "Certificat obtenu 🎓",
   "certificate.view": "Voir mon certificat",
   "certificate.title": "Certificat de réussite",
@@ -406,6 +419,19 @@ const en: Dictionary = {
   "courses.feed.removed": "Lesson removed from the feed",
   "courses.feed.failed": "Could not publish: {message}",
 
+  "admin.title": "Catalogue desk",
+  "admin.subtitle": "Feed and courses supply. Restricted to authorised accounts.",
+  "admin.open": "Catalogue desk",
+  "admin.denied.title": "Restricted area",
+  "admin.denied.body": "This account is not allowed to supply the catalogue.",
+  "admin.denied.signIn": "Sign in with an authorised account.",
+  "admin.videos.title": "Add videos to the feed",
+  "admin.videos.hint":
+    "One link per line. Titles come from YouTube; duplicates and unplayable videos are skipped.",
+  "admin.videos.submit": "Add to the feed",
+  "admin.videos.busy": "Adding…",
+  "admin.videos.done": "{added} added · {duplicates} already there · {rejected} skipped",
+
   "certificate.earned": "Certificate earned 🎓",
   "certificate.view": "View my certificate",
   "certificate.title": "Certificate of completion",
@@ -625,6 +651,19 @@ const ar: Dictionary = {
   "courses.feed.added": "أُضيف الدرس إلى التدفّق",
   "courses.feed.removed": "أُزيل الدرس من التدفّق",
   "courses.feed.failed": "تعذّر النشر: {message}",
+
+  "admin.title": "مكتب المحتوى",
+  "admin.subtitle": "تغذية التدفّق والدورات. مقصور على الحسابات المصرّح لها.",
+  "admin.open": "مكتب المحتوى",
+  "admin.denied.title": "منطقة مقيّدة",
+  "admin.denied.body": "هذا الحساب غير مصرّح له بتغذية المحتوى.",
+  "admin.denied.signIn": "سجّل الدخول بحساب مصرّح له.",
+  "admin.videos.title": "إضافة فيديوهات إلى التدفّق",
+  "admin.videos.hint":
+    "رابط في كل سطر. العناوين تأتي من يوتيوب، وتُستبعد المكرّرة وغير القابلة للتشغيل.",
+  "admin.videos.submit": "إضافة إلى التدفّق",
+  "admin.videos.busy": "جارٍ الإضافة…",
+  "admin.videos.done": "أُضيف {added} · {duplicates} موجودة · {rejected} مستبعدة",
 
   "certificate.earned": "تم الحصول على الشهادة 🎓",
   "certificate.view": "عرض شهادتي",

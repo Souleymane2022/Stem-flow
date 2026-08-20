@@ -19,8 +19,7 @@ export const LEVELS: Level[] = [
 export const getLevel = (xp: number): Level =>
   [...LEVELS].reverse().find((l) => xp >= l.minXp) ?? LEVELS[0]!;
 
-export const getNextLevel = (xp: number): Level | null =>
-  LEVELS.find((l) => l.minXp > xp) ?? null;
+export const getNextLevel = (xp: number): Level | null => LEVELS.find((l) => l.minXp > xp) ?? null;
 
 export function levelProgress(xp: number) {
   const current = getLevel(xp);

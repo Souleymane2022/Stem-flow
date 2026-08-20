@@ -11,11 +11,13 @@ import {
   Swords,
   GraduationCap,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { InfinityGlyph } from "@/components/brand/InfinityGlyph";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminEmail } from "@/lib/admins";
 import { useI18n } from "@/lib/i18n";
 import { getLevel, levelProgress } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +96,7 @@ function XpBar() {
 export function AppShell({ children }: { children: ReactNode }) {
   const unread = useUnreadCount();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { profile, session, signOut } = useAuth();
+  const { profile, session, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { t } = useI18n();
   const level = getLevel(profile?.xp ?? 0);
@@ -136,6 +138,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className="truncate">{t(label)}</span>
               </Link>
             ))}
+            {/* Réservée : ce lien ne s'affiche que pour les comptes autorisés.
+                Le contrôle qui protège l'action est en base, pas ici. */}
+            {isAdminEmail(user?.email) && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  isActive("/admin")
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                }`}
+              >
+                <ShieldCheck className="h-5 w-5 shrink-0" />
+                <span className="truncate">{t("admin.open")}</span>
+              </Link>
+            )}
             <Link
               to="/notifications"
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${

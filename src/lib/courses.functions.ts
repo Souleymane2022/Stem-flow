@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireAdmin } from "@/lib/admin.server";
 import { CATEGORIES } from "@/lib/categories";
 
 type Input = {
@@ -75,6 +76,8 @@ export const importYoutubePlaylist = createServerFn({ method: "POST" })
     return { playlistId, category, difficulty, feedCount };
   })
   .handler(async ({ data, context }) => {
+    await requireAdmin(context.userId);
+
     const apiKey = process.env["YOUTUBE_API_KEY"];
     if (!apiKey) {
       throw new Error(
