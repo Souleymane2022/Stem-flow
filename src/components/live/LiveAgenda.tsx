@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n, type Key } from "@/lib/i18n";
 import { EmptyState } from "@/components/common/EmptyState";
 import { relativeTime } from "@/lib/dates";
+import { formatCount } from "@/lib/numbers";
 
 type Agenda = {
   id: string;
@@ -142,7 +143,7 @@ export function LiveAgenda({
                   </span>
                 )}
                 <span className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
-                  <Users className="h-3 w-3" /> {row.attendee_count}
+                  <Users className="h-3 w-3" /> {formatCount(row.attendee_count, locale)}
                 </span>
               </span>
             </Link>

@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { useI18n } from "@/lib/i18n";
+import { formatCount } from "@/lib/numbers";
+import { messageTime } from "@/lib/dates";
 import { RoomLive } from "@/components/live/RoomLive";
 import { categoryMeta } from "@/lib/categories";
 
@@ -40,7 +42,7 @@ type Post = {
 };
 
 function RoomPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { id } = Route.useParams();
   const { session, profile } = useAuth();
   const [room, setRoom] = useState<Room | null>(null);
@@ -142,7 +144,9 @@ function RoomPage() {
           <span className="text-2xl">{meta.emoji}</span>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-extrabold">{room?.name ?? "Salon"}</h1>
-            <p className="text-[11px] text-muted-foreground">{room?.member_count ?? 0} membres</p>
+            <p className="text-[11px] text-muted-foreground">
+              {t("rooms.members", { count: formatCount(room?.member_count ?? 0, locale) })}
+            </p>
           </div>
           <button
             onClick={toggleJoin}
@@ -179,6 +183,11 @@ function RoomPage() {
                     </p>
                   )}
                   <p className="text-sm">{post.text}</p>
+                  {/* Sans repère de temps, impossible de savoir si la
+                      conversation date d'il y a trois minutes ou trois jours. */}
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {messageTime(post.created_at, locale)}
+                  </p>
                 </div>
               </div>
             );

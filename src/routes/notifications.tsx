@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
 import { useI18n, type Key } from "@/lib/i18n";
+import { messageTime } from "@/lib/dates";
 import { SkeletonList } from "@/components/common/Skeleton";
 
 export const Route = createFileRoute("/notifications")({
@@ -55,7 +56,7 @@ const BODY_KEY: Record<string, Key> = {
 };
 
 function NotificationsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { session } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,10 +144,7 @@ function NotificationsPage() {
                   </p>
                 )}
                 <p className="mt-1 text-[10px] text-muted-foreground">
-                  {new Date(n.created_at).toLocaleDateString("fr-FR", {
-                    day: "numeric",
-                    month: "short",
-                  })}
+                  {messageTime(n.created_at, locale)}
                 </p>
               </div>
             </div>

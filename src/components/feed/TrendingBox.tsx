@@ -4,6 +4,7 @@ import { Eye, Flame } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n, useLabels } from "@/lib/i18n";
+import { formatCount } from "@/lib/numbers";
 import { categoryMeta } from "@/lib/categories";
 import { youtubeThumbnail } from "@/utils/youtube";
 
@@ -29,7 +30,7 @@ const HOW_MANY = 8;
  * bâti sur des chiffres inventés ne dirait rien.
  */
 export function TrendingBox() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { categoryLabel } = useLabels();
   const [rows, setRows] = useState<Trending[]>([]);
 
@@ -91,7 +92,7 @@ export function TrendingBox() {
                   {index + 1}
                 </span>
                 <span className="absolute bottom-1.5 end-1.5 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-bold">
-                  <Eye className="h-3 w-3" /> {row.views_count}
+                  <Eye className="h-3 w-3" /> {formatCount(row.views_count, locale)}
                 </span>
               </span>
               <span className="block p-2.5">

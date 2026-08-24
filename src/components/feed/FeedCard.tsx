@@ -21,6 +21,7 @@ import { youtubeThumbnail } from "@/utils/youtube";
 import { BrandSplash } from "@/components/brand/BrandSplash";
 import { markBrandBreakShown, shouldShowBrandBreak } from "@/lib/brandBreak";
 import { useI18n, useLabels } from "@/lib/i18n";
+import { formatCount } from "@/lib/numbers";
 
 export type ContentRow = {
   id: string;
@@ -98,7 +99,7 @@ export function FeedCard({
   onOpenQuiz,
   onXp,
 }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { categoryLabel, difficultyLabel } = useLabels();
   const meta = categoryMeta(content.category);
   // Décidé au montage, comme la lecture : le fil monte la slide suivante à
@@ -310,17 +311,17 @@ export function FeedCard({
       {/* Right action rail */}
       <div className="absolute bottom-28 end-3 z-30 flex flex-col items-center gap-5 md:bottom-32 md:end-6">
         <ActionButton
-          label={String(content.likes_count)}
+          label={formatCount(content.likes_count, locale)}
           onClick={onToggleLike}
           active={liked}
           activeClass="text-destructive"
         >
           <Heart className={`h-6 w-6 ${liked ? "fill-current" : ""}`} />
         </ActionButton>
-        <ActionButton label={String(content.comments_count)} onClick={onComments}>
+        <ActionButton label={formatCount(content.comments_count, locale)} onClick={onComments}>
           <MessageCircle className="h-6 w-6" />
         </ActionButton>
-        <ActionButton label={String(content.shares_count)} onClick={onShare}>
+        <ActionButton label={formatCount(content.shares_count, locale)} onClick={onShare}>
           <Share2 className="h-6 w-6" />
         </ActionButton>
         <ActionButton label="" onClick={onToggleSave} active={saved} activeClass="text-engineering">

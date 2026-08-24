@@ -13,7 +13,7 @@ import { SkeletonList } from "@/components/common/Skeleton";
 import { isAdminEmail } from "@/lib/admins";
 import { explainDbError } from "@/lib/db-errors";
 import { extractYouTubeId } from "@/utils/youtube";
-import { durationLabel, relativeTime } from "@/lib/dates";
+import { durationLabel, messageTime, relativeTime } from "@/lib/dates";
 
 export const Route = createFileRoute("/live/$id")({
   head: () => ({
@@ -462,7 +462,10 @@ function LivePage() {
                 </span>
                 <p className="min-w-0 flex-1 text-sm">
                   <span className="font-bold">@{message.username ?? "membre"}</span>{" "}
-                  <span className="text-foreground/85">{message.text}</span>
+                  <span className="text-foreground/85">{message.text}</span>{" "}
+                  <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                    {messageTime(message.created_at, locale)}
+                  </span>
                 </p>
                 {canModerate && (
                   <button

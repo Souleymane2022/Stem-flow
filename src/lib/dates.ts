@@ -29,3 +29,17 @@ export function durationLabel(minutes: number, locale: string): string {
   const h = locale.startsWith("ar") ? "س" : "h";
   return rest === 0 ? `${hours} ${h}` : `${hours} ${h} ${String(rest).padStart(2, "0")}`;
 }
+
+/**
+ * Horodatage d'un message.
+ *
+ * Dans une discussion, « il y a 3 minutes » situe mieux qu'une heure absolue
+ * — sauf passé la journée, où l'heure seule ne dit plus de quel jour il
+ * s'agit.
+ */
+export function messageTime(value: string, locale: string): string {
+  const date = new Date(value);
+  const age = Date.now() - date.getTime();
+  if (age < DAY) return relativeTime(date, locale);
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short" });
+}

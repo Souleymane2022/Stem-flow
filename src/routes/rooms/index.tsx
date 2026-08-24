@@ -7,6 +7,7 @@ import { SkeletonList } from "@/components/common/Skeleton";
 import { PageHeader } from "@/components/common/PageHeader";
 import { LiveAgenda } from "@/components/live/LiveAgenda";
 import { useI18n } from "@/lib/i18n";
+import { formatCount } from "@/lib/numbers";
 import { categoryMeta } from "@/lib/categories";
 
 export const Route = createFileRoute("/rooms/")({
@@ -37,7 +38,7 @@ type Room = {
 };
 
 function RoomsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,7 +98,7 @@ function RoomsPage() {
                   {room.description}
                 </p>
                 <p className="mt-3 text-[11px] font-bold text-primary">
-                  {room.member_count} membres
+                  {t("rooms.members", { count: formatCount(room.member_count, locale) })}
                 </p>
               </Link>
             );

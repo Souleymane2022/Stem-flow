@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { isAdminEmail } from "@/lib/admins";
 import { InstallLink } from "@/components/pwa/InstallApp";
 import { useI18n } from "@/lib/i18n";
+import { formatCount } from "@/lib/numbers";
 import { getLevel, levelProgress } from "@/lib/xp";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -113,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { profile, session, signOut, user } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const level = getLevel(profile?.xp ?? 0);
 
   // Toutes les pages n'ont pas de garde de session : on renvoie explicitement
@@ -227,7 +228,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <span className="flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-xs font-bold">
-            <InfinityGlyph /> <span className="tabular">{profile?.xp ?? 0}</span>
+            <InfinityGlyph />{" "}
+            <span className="tabular">{formatCount(profile?.xp ?? 0, locale)}</span>
           </span>
           <span className="text-lg" title={level.label}>
             {level.icon}
