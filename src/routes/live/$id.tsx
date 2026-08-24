@@ -13,6 +13,7 @@ import { SkeletonList } from "@/components/common/Skeleton";
 import { isAdminEmail } from "@/lib/admins";
 import { explainDbError } from "@/lib/db-errors";
 import { extractYouTubeId } from "@/utils/youtube";
+import { durationLabel, relativeTime } from "@/lib/dates";
 
 export const Route = createFileRoute("/live/$id")({
   head: () => ({
@@ -77,6 +78,7 @@ function LivePage() {
   const [sending, setSending] = useState(false);
   const [videoDraft, setVideoDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
 
   const isHost = Boolean(live?.host_id && live.host_id === user?.id);
   const canModerate = isHost || isAdminEmail(user?.email);
@@ -130,7 +132,14 @@ function LivePage() {
           table: "live_messages",
           filter: `session_id=eq.${id}`,
         },
-        (payload) => setMessages((prev) => [...prev, payload.new as Message]),
+        (payload) =>
+          setMessages((prev) => {
+            const arriving = payload.new as Message;
+            // Le message peut déjà être là : l'expéditeur l'affiche sans
+            // attendre le retour du serveur.
+            if (prev.some((m) => m.id === arriving.id)) return prev;
+            return [...prev, arriving];
+          }),
       )
       .on(
         "postgres_changes",
@@ -149,8 +158,14 @@ function LivePage() {
     };
   }, [id]);
 
+  // On ne suit le fil que si la personne s'y trouve déjà : pendant un direct
+  // animé, ramener de force en bas arracherait la lecture d'un message plus
+  // haut à chaque arrivée.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    const box = chatRef.current;
+    if (!box) return;
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    if (atBottom) bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
   const toggleAttendance = async () => {
@@ -194,18 +209,28 @@ function LivePage() {
     setSending(true);
     // La ligne part avec le nom d'utilisateur figé : le message reste lisible
     // même si la personne change de pseudo ensuite.
-    const { error } = await supabase.from("live_messages").insert({
-      session_id: id,
-      user_id: auth.user.id,
-      username: profile?.username ?? null,
-      text,
-    });
+    const { data, error } = await supabase
+      .from("live_messages")
+      .insert({
+        session_id: id,
+        user_id: auth.user.id,
+        username: profile?.username ?? null,
+        text,
+      })
+      .select("id,user_id,username,text,created_at")
+      .maybeSingle();
     setSending(false);
     if (error) {
       toast.error(explainDbError(error, t));
       return;
     }
     setDraft("");
+    // Affiché tout de suite : si le temps réel n'est pas actif, on verrait
+    // sinon son propre message disparaître dans le vide.
+    if (data) {
+      const sent = data as Message;
+      setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]));
+    }
   };
 
   const share = async () => {
@@ -296,9 +321,12 @@ function LivePage() {
 
   const isLive = live.status === "live";
   const startsAt = new Date(live.starts_at).toLocaleString(locale, {
-    dateStyle: "full",
+    dateStyle: "long",
     timeStyle: "short",
   });
+  // Devant une séance annoncée, « dans deux jours » vaut mieux qu'une date
+  // qu'il faut comparer de tête à celle du jour.
+  const countdown = live.status === "scheduled" ? relativeTime(live.starts_at, locale) : null;
 
   return (
     <AppShell>
@@ -358,17 +386,19 @@ function LivePage() {
         )}
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void toggleAttendance()}
-            className={`rounded-full px-4 py-2 text-sm font-black ${
-              attending
-                ? "border border-border bg-surface-2 text-muted-foreground"
-                : "bg-gradient-brand text-background"
-            }`}
-          >
-            {attending ? t("live.leave") : t("live.join")}
-          </button>
+          {live.status !== "ended" && live.status !== "cancelled" && !isHost && (
+            <button
+              type="button"
+              onClick={() => void toggleAttendance()}
+              className={`rounded-full px-4 py-2 text-sm font-black ${
+                attending
+                  ? "border border-border bg-surface-2 text-muted-foreground"
+                  : "bg-gradient-brand text-background"
+              }`}
+            >
+              {attending ? t("live.leave") : t("live.join")}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => void share()}
@@ -416,7 +446,10 @@ function LivePage() {
         <section className="mt-6">
           <h2 className="text-base font-bold">{t("live.chat")}</h2>
 
-          <div className="mt-3 max-h-[26rem] space-y-2 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-3">
+          <div
+            ref={chatRef}
+            className="mt-3 max-h-[26rem] space-y-2 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-3"
+          >
             {messages.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {t("live.chat.empty")}

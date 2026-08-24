@@ -5,6 +5,7 @@ import { CalendarDays, Radio, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n, type Key } from "@/lib/i18n";
 import { EmptyState } from "@/components/common/EmptyState";
+import { relativeTime } from "@/lib/dates";
 
 type Agenda = {
   id: string;
@@ -28,7 +29,19 @@ const KIND_KEY: Record<string, Key> = {
  * Sans `roomId`, elle couvre tous les salons : c'est la vue d'agenda de la
  * page Salons. Avec, elle se limite au salon affiché.
  */
-export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; showEmpty?: boolean }) {
+export function LiveAgenda({
+  roomId,
+  showEmpty = true,
+  includeEnded = false,
+  onCount,
+}: {
+  roomId?: string;
+  showEmpty?: boolean;
+  /** Rediffusions comprises : utile dans un salon, où la séance passée compte. */
+  includeEnded?: boolean;
+  /** Prévient le parent du nombre de séances, pour qu'il masque son titre. */
+  onCount?: (count: number) => void;
+}) {
   const { t, locale } = useI18n();
   const [rows, setRows] = useState<Agenda[] | null>(null);
 
@@ -38,7 +51,10 @@ export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; show
       let query = supabase
         .from("live_sessions")
         .select("id,title,kind,status,starts_at,attendee_count,host_name")
-        .in("status", ["live", "scheduled"])
+        .in("status", includeEnded ? ["live", "scheduled", "ended"] : ["live", "scheduled"])
+        // Une séance annoncée puis jamais ouverte resterait sinon en tête de
+        // l'agenda des semaines après sa date.
+        .gte("starts_at", new Date(Date.now() - 36 * 3600 * 1000).toISOString())
         // Les directs d'abord, puis les prochaines dates : c'est l'ordre dans
         // lequel on cherche une séance.
         .order("status", { ascending: true })
@@ -50,14 +66,20 @@ export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; show
       if (error) {
         console.error("[direct] agenda illisible", error);
         setRows([]);
+        onCount?.(0);
         return;
       }
-      setRows((data as Agenda[]) ?? []);
+      const list = (data as Agenda[]) ?? [];
+      setRows(list);
+      onCount?.(list.length);
     })();
     return () => {
       alive = false;
     };
-  }, [roomId]);
+    // `onCount` change à chaque rendu du parent : le suivre relancerait la
+    // requête en boucle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, includeEnded]);
 
   if (rows === null) return null;
   if (rows.length === 0) {
@@ -75,6 +97,7 @@ export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; show
     <ul className="mt-3 space-y-2">
       {rows.map((row) => {
         const isLive = row.status === "live";
+        const isEnded = row.status === "ended";
         return (
           <li key={row.id}>
             <Link
@@ -97,10 +120,12 @@ export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; show
                 <span className="block truncate text-sm font-bold">{row.title}</span>
                 <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
                   {t(KIND_KEY[row.kind] ?? "live.kind.masterclass")} ·{" "}
-                  {new Date(row.starts_at).toLocaleString(locale, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                  {row.status === "scheduled"
+                    ? relativeTime(row.starts_at, locale)
+                    : new Date(row.starts_at).toLocaleString(locale, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
                   {row.host_name && ` · @${row.host_name}`}
                 </span>
               </span>
@@ -109,6 +134,11 @@ export function LiveAgenda({ roomId, showEmpty = true }: { roomId?: string; show
                   <span className="flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-black text-destructive">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-destructive" />
                     {t("live.status.live")}
+                  </span>
+                )}
+                {isEnded && (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                    {t("live.status.ended")}
                   </span>
                 )}
                 <span className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground">

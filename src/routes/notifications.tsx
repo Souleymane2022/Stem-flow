@@ -4,7 +4,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Key } from "@/lib/i18n";
 import { SkeletonList } from "@/components/common/Skeleton";
 
 export const Route = createFileRoute("/notifications")({
@@ -39,6 +39,19 @@ const ICONS: Record<string, string> = {
   comment: "💬",
   mission: "🎯",
   level: "⬆️",
+  live_started: "🔴",
+  competition_invite: "⚔️",
+};
+
+/**
+ * Corps de notification traduit.
+ *
+ * Le texte enregistré en base est écrit en français par la fonction qui pose
+ * la notification : elle ne connaît pas la langue de qui la lira. Quand le
+ * type suffit à dire la chose, on préfère la phrase du dictionnaire.
+ */
+const BODY_KEY: Record<string, Key> = {
+  live_started: "live.notification",
 };
 
 function NotificationsPage() {
@@ -124,7 +137,11 @@ function NotificationsPage() {
               <span className="text-xl">{ICONS[n.type] ?? "∞"}</span>
               <div className="min-w-0">
                 <p className="text-sm font-bold">{n.title}</p>
-                {n.message && <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>}
+                {(BODY_KEY[n.type] || n.message) && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {BODY_KEY[n.type] ? t(BODY_KEY[n.type]!) : n.message}
+                  </p>
+                )}
                 <p className="mt-1 text-[10px] text-muted-foreground">
                   {new Date(n.created_at).toLocaleDateString("fr-FR", {
                     day: "numeric",

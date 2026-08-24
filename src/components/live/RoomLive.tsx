@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { CalendarPlus, Loader2, Radio } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ function defaultStart(): string {
 export function RoomLive({ roomId }: { roomId: string }) {
   const { t } = useI18n();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const canHost = isAdminEmail(user?.email);
 
   const [open, setOpen] = useState(false);
@@ -41,11 +43,12 @@ export function RoomLive({ roomId }: { roomId: string }) {
   const [duration, setDuration] = useState(60);
   const [video, setVideo] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [count, setCount] = useState<number | null>(null);
 
   const submit = async () => {
     if (title.trim().length < 3) return;
     setBusy(true);
-    const { error } = await supabase.rpc("create_live_session", {
+    const { data, error } = await supabase.rpc("create_live_session", {
       p_room_id: roomId,
       p_title: title.trim(),
       p_kind: kind,
@@ -67,11 +70,20 @@ export function RoomLive({ roomId }: { roomId: string }) {
     setOpen(false);
     setRefresh((n) => n + 1);
     toast.success(t("live.create.done"));
+    // On enchaîne sur la séance : c'est là qu'on colle le lien du direct et
+    // qu'on la partage, et personne n'a envie de la rechercher pour ça.
+    if (typeof data === "string") void navigate({ to: "/live/$id", params: { id: data } });
   };
 
+  // Rien à annoncer, rien à montrer : le titre seul au-dessus du vide donne
+  // l'impression d'un bloc cassé, et repousse la discussion vers le bas. La
+  // liste, elle, reste montée dans tous les cas — la démonter pour la remonter
+  // relancerait sa requête.
+  const showHeader = canHost || (count ?? 0) > 0;
+
   return (
-    <section className="mb-3">
-      <div className="flex items-center justify-between gap-2">
+    <section className={showHeader ? "mb-3" : ""}>
+      <div className={`items-center justify-between gap-2 ${showHeader ? "flex" : "hidden"}`}>
         <h2 className="flex items-center gap-2 text-sm font-bold">
           <Radio className="h-4 w-4 text-destructive" /> {t("live.agenda")}
         </h2>
@@ -86,7 +98,7 @@ export function RoomLive({ roomId }: { roomId: string }) {
         )}
       </div>
 
-      <LiveAgenda key={refresh} roomId={roomId} showEmpty={false} />
+      <LiveAgenda key={refresh} roomId={roomId} showEmpty={false} includeEnded onCount={setCount} />
 
       {open && canHost && (
         <div className="mt-3 space-y-2 rounded-2xl border border-primary/30 bg-primary/5 p-3">
