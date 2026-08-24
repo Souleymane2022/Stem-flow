@@ -47,13 +47,20 @@ export function RoomLive({ roomId }: { roomId: string }) {
 
   const submit = async () => {
     if (title.trim().length < 3) return;
+    // Un lien non reconnu doit être signalé maintenant : enregistré tel quel,
+    // il ne se verrait qu'au moment du direct, sous la forme d'un cadre vide.
+    const videoId = video.trim() ? extractYouTubeId(video) : null;
+    if (video.trim() && !videoId) {
+      toast.error(t("live.badLink"));
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase.rpc("create_live_session", {
       p_room_id: roomId,
       p_title: title.trim(),
       p_kind: kind,
       p_description: description.trim() || null,
-      p_video_id: extractYouTubeId(video) ?? (video.trim() || null),
+      p_video_id: videoId,
       // Le champ du navigateur donne une heure locale : elle part en UTC,
       // sinon la séance s'afficherait décalée pour tous les autres fuseaux.
       p_starts_at: new Date(startsAt).toISOString(),

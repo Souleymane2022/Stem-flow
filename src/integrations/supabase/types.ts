@@ -556,6 +556,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      live_questions: {
+        Row: {
+          answered: boolean;
+          created_at: string;
+          id: string;
+          session_id: string;
+          text: string;
+          user_id: string;
+          username: string | null;
+          votes_count: number;
+        };
+        Insert: {
+          answered?: boolean;
+          created_at?: string;
+          id?: string;
+          session_id: string;
+          text: string;
+          user_id: string;
+          username?: string | null;
+          votes_count?: number;
+        };
+        Update: {
+          answered?: boolean;
+          created_at?: string;
+          id?: string;
+          session_id?: string;
+          text?: string;
+          user_id?: string;
+          username?: string | null;
+          votes_count?: number;
+        };
+        Relationships: [];
+      };
+      live_question_votes: {
+        Row: { created_at: string; question_id: string; user_id: string };
+        Insert: { created_at?: string; question_id: string; user_id: string };
+        Update: { created_at?: string; question_id?: string; user_id?: string };
+        Relationships: [];
+      };
       live_sessions: {
         Row: {
           attendee_count: number;
@@ -1322,6 +1361,14 @@ export type Database = {
       };
       delete_live_message: {
         Args: { p_message_id: string };
+        Returns: boolean;
+      };
+      set_question_answered: {
+        Args: { p_question_id: string; p_answered: boolean };
+        Returns: boolean;
+      };
+      delete_live_question: {
+        Args: { p_question_id: string };
         Returns: boolean;
       };
       is_app_admin: {

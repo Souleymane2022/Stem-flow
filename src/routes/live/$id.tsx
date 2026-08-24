@@ -11,8 +11,11 @@ import { VideoPlayer } from "@/components/feed/VideoPlayer";
 import { EmptyState } from "@/components/common/EmptyState";
 import { SkeletonList } from "@/components/common/Skeleton";
 import { isAdminEmail } from "@/lib/admins";
+import { useLiveRoom } from "@/components/live/useLiveRoom";
+import { ReactionBar, ReactionLayer } from "@/components/live/LiveReactions";
+import { LiveQuestions } from "@/components/live/LiveQuestions";
 import { explainDbError } from "@/lib/db-errors";
-import { extractYouTubeId } from "@/utils/youtube";
+import { extractYouTubeId, isYouTubeId } from "@/utils/youtube";
 import { durationLabel, messageTime, relativeTime } from "@/lib/dates";
 
 export const Route = createFileRoute("/live/$id")({
@@ -77,9 +80,11 @@ function LivePage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [videoDraft, setVideoDraft] = useState("");
+  const [tab, setTab] = useState<"chat" | "questions">("chat");
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
 
+  const { online, bursts, react } = useLiveRoom(id, user?.id);
   const isHost = Boolean(live?.host_id && live.host_id === user?.id);
   const canModerate = isHost || isAdminEmail(user?.email);
 
@@ -266,8 +271,11 @@ function LivePage() {
   };
 
   const saveVideo = async () => {
-    const videoId = extractYouTubeId(videoDraft) ?? videoDraft.trim();
-    if (!videoId) return;
+    const videoId = extractYouTubeId(videoDraft);
+    if (!videoId) {
+      toast.error(t("live.badLink"));
+      return;
+    }
     const { error } = await supabase.rpc("update_live_session", {
       p_session_id: id,
       p_video_id: videoId,
@@ -340,9 +348,9 @@ function LivePage() {
         </Link>
 
         {/* Diffusion */}
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-black">
+        <div className="relative mt-4 overflow-hidden rounded-2xl border border-border bg-black">
           <div className="aspect-video w-full">
-            {live.video_id ? (
+            {live.video_id && isYouTubeId(live.video_id) ? (
               <VideoPlayer videoId={live.video_id} />
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-surface-2 px-6 text-center">
@@ -353,7 +361,11 @@ function LivePage() {
               </div>
             )}
           </div>
+          <ReactionLayer bursts={bursts} />
         </div>
+
+        {/* Applaudir, s'étonner : ce qu'on ferait dans une salle. */}
+        <ReactionBar onReact={react} />
 
         {/* Identité de la séance */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -373,6 +385,12 @@ function LivePage() {
           <span className="flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
             <Users className="h-3 w-3" /> {t("live.attendees", { count: live.attendee_count })}
           </span>
+          {online > 0 && (
+            <span className="flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />{" "}
+              {t("live.online", { count: online })}
+            </span>
+          )}
         </div>
 
         <h1 className="mt-3 text-2xl md:text-3xl">{live.title}</h1>
@@ -444,69 +462,94 @@ function LivePage() {
 
         {/* Discussion */}
         <section className="mt-6">
-          <h2 className="text-base font-bold">{t("live.chat")}</h2>
-
-          <div
-            ref={chatRef}
-            className="mt-3 max-h-[26rem] space-y-2 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-3"
-          >
-            {messages.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {t("live.chat.empty")}
-              </p>
-            )}
-            {messages.map((message) => (
-              <div key={message.id} className="group flex items-start gap-2">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-[11px] font-black text-primary-foreground">
-                  {(message.username ?? "?").charAt(0).toUpperCase()}
-                </span>
-                <p className="min-w-0 flex-1 text-sm">
-                  <span className="font-bold">@{message.username ?? "membre"}</span>{" "}
-                  <span className="text-foreground/85">{message.text}</span>{" "}
-                  <span className="whitespace-nowrap text-[10px] text-muted-foreground">
-                    {messageTime(message.created_at, locale)}
-                  </span>
-                </p>
-                {canModerate && (
-                  <button
-                    type="button"
-                    onClick={() => void removeMessage(message.id)}
-                    aria-label={t("admin.delete.action")}
-                    className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+          {/* La discussion et les questions ne se mélangent pas : une bonne
+              question se noierait sous les salutations. */}
+          <div className="flex gap-2">
+            {(["chat", "questions"] as const).map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setTab(name)}
+                className={`rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+                  tab === name
+                    ? "bg-gradient-brand text-background"
+                    : "border border-border bg-surface-2 text-muted-foreground"
+                }`}
+              >
+                {name === "chat" ? t("live.chat") : t("live.questions")}
+              </button>
             ))}
-            <div ref={bottomRef} />
           </div>
 
-          {auth ? (
-            <form onSubmit={(e) => void send(e)} className="mt-3 flex gap-2">
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={t("live.chat.placeholder")}
-                maxLength={1000}
-                className="min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-4 py-2.5 text-sm outline-none focus:border-primary"
-              />
-              <button
-                type="submit"
-                disabled={sending || !draft.trim()}
-                aria-label={t("rooms.send")}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-background disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
-          ) : (
-            <p className="mt-3 text-center text-sm text-muted-foreground">
-              <Link to="/auth" className="text-primary">
-                {t("live.chat.signin")}
-              </Link>
-            </p>
+          {tab === "questions" && (
+            <div className="mt-3">
+              <LiveQuestions sessionId={id} canHost={canModerate} />
+            </div>
           )}
+
+          <div className={tab === "chat" ? "" : "hidden"}>
+            <div
+              ref={chatRef}
+              className="mt-3 max-h-[26rem] space-y-2 overflow-y-auto rounded-2xl border border-border bg-surface-2 p-3"
+            >
+              {messages.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  {t("live.chat.empty")}
+                </p>
+              )}
+              {messages.map((message) => (
+                <div key={message.id} className="group flex items-start gap-2">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-[11px] font-black text-primary-foreground">
+                    {(message.username ?? "?").charAt(0).toUpperCase()}
+                  </span>
+                  <p className="min-w-0 flex-1 text-sm">
+                    <span className="font-bold">@{message.username ?? "membre"}</span>{" "}
+                    <span className="text-foreground/85">{message.text}</span>{" "}
+                    <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                      {messageTime(message.created_at, locale)}
+                    </span>
+                  </p>
+                  {canModerate && (
+                    <button
+                      type="button"
+                      onClick={() => void removeMessage(message.id)}
+                      aria-label={t("admin.delete.action")}
+                      className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+
+            {auth ? (
+              <form onSubmit={(e) => void send(e)} className="mt-3 flex gap-2">
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={t("live.chat.placeholder")}
+                  maxLength={1000}
+                  className="min-w-0 flex-1 rounded-full border border-border bg-surface-2 px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !draft.trim()}
+                  aria-label={t("rooms.send")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-background disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+            ) : (
+              <p className="mt-3 text-center text-sm text-muted-foreground">
+                <Link to="/auth" className="text-primary">
+                  {t("live.chat.signin")}
+                </Link>
+              </p>
+            )}
+          </div>
         </section>
       </div>
     </AppShell>
