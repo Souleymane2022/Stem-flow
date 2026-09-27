@@ -2,5 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm ci",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "env": {
+    "VITE_SUPABASE_URL": "@stemflow_supabase_url",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "@stemflow_supabase_publishable_key",
+    "VITE_SUPABASE_PROJECT_ID": "@stemflow_supabase_project_id",
+    "SUPABASE_URL": "@stemflow_supabase_url",
+    "SUPABASE_PUBLISHABLE_KEY": "@stemflow_supabase_publishable_key",
+    "SUPABASE_PROJECT_ID": "@stemflow_supabase_project_id",
+    "SUPABASE_SERVICE_ROLE_KEY": "@stemflow_supabase_service_role_key",
+    "GEMINI_API_KEY": "@stemflow_gemini_api_key",
+    "LOVABLE_API_KEY": "@stemflow_lovable_api_key",
+    "VITE_SITE_URL": "@stemflow_site_url"
+  },
+  "regions": ["iad1"]
 }
